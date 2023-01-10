@@ -2,6 +2,9 @@
 
 /matches
 /client
+/client32
+
+.idea
 
 ###### GRADLE ######
 
