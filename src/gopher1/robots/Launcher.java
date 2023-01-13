@@ -1,9 +1,6 @@
 package gopher1.robots;
 
-import battlecode.common.GameActionException;
-import battlecode.common.RobotController;
-import battlecode.common.RobotInfo;
-import battlecode.common.RobotType;
+import battlecode.common.*;
 
 public class Launcher extends Robot {
 
@@ -61,8 +58,26 @@ public class Launcher extends Robot {
         }
     }
 
+    private RobotInfo getLauncherToFollow() {
+        int lowestID = Integer.MAX_VALUE;
+        RobotInfo toFollow = null;
+        for (RobotInfo friendly : sensedFriendlyRobots) {
+            if (friendly.getType() == RobotType.LAUNCHER && friendly.getID() < lowestID) {
+                lowestID = friendly.getID();
+                toFollow = friendly;
+            }
+        }
+        return toFollow;
+    }
+
     private void performMove() throws GameActionException {
-        pathing.wander();
+        RobotInfo toFollow = getLauncherToFollow();
+        if (toFollow != null) {
+            rc.setIndicatorLine(location, toFollow.getLocation(), 255, 0, 0);
+            pathing.moveTo(toFollow.getLocation());
+        } else {
+            pathing.wander();
+        }
     }
 
 }

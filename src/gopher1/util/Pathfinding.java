@@ -28,25 +28,25 @@ public class Pathfinding {
 
     public void moveTo(MapLocation location) throws GameActionException {
         Direction optimalDirection = rc.getLocation().directionTo(location);
-        Direction[] optimalTryOrder = new Direction[]{
-                optimalDirection,
-                optimalDirection.rotateLeft(),
-                optimalDirection.rotateRight(),
-                optimalDirection.rotateLeft().rotateLeft(),
-                optimalDirection.rotateRight().rotateRight(),
-                optimalDirection.rotateLeft().rotateLeft().rotateLeft(),
-                optimalDirection.rotateRight().rotateRight().rotateRight(),
-                optimalDirection.opposite()
-        };
-        for (Direction direction : optimalTryOrder) {
-            if (direction != null && rc.canMove(direction)) {
-                rc.move(direction);
-            }
-        }
+        moveTowards(optimalDirection);
     }
 
-    public void moveTowards(Direction direction) {
-
+    public void moveTowards(Direction direction) throws GameActionException {
+        Direction[] optimalTryOrder = new Direction[]{
+                direction,
+                direction.rotateLeft(),
+                direction.rotateRight(),
+                direction.rotateLeft().rotateLeft(),
+                direction.rotateRight().rotateRight(),
+                direction.rotateLeft().rotateLeft().rotateLeft(),
+                direction.rotateRight().rotateRight().rotateRight(),
+                direction.opposite()
+        };
+        for (Direction d : optimalTryOrder) {
+            if (d != null && rc.canMove(d)) {
+                rc.move(d);
+            }
+        }
     }
 
     public void wander() throws GameActionException {
@@ -57,7 +57,7 @@ public class Pathfinding {
             }
         }
         Direction direction = ArrayListUtils.chooseRandom(possibleDirections);
-        if (direction != null) {
+        if (direction != null && rc.canMove(direction)) {
             rc.move(direction);
         }
     }

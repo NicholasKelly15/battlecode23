@@ -18,6 +18,7 @@ public class Carrier extends Robot {
         super.run();
         updateInternalVariables();
 
+        runAway();
         if (adamantiumHeld == GameConstants.CARRIER_CAPACITY
                 || manaHeld == GameConstants.CARRIER_CAPACITY
                 || elixirHeld == GameConstants.CARRIER_CAPACITY) {
@@ -25,13 +26,19 @@ public class Carrier extends Robot {
         } else {
             searchAndDrawFromWell();
         }
-
     }
 
     private void updateInternalVariables() {
         adamantiumHeld = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         manaHeld = rc.getResourceAmount(ResourceType.MANA);
         elixirHeld = rc.getResourceAmount(ResourceType.ELIXIR);
+    }
+
+    private void runAway() throws GameActionException {
+        MapLocation averageEnemyPosition = getAverageEnemyLocation();
+        if (averageEnemyPosition != null) {
+            pathing.moveTowards(averageEnemyPosition.directionTo(location));
+        }
     }
 
     private void searchAndDrawFromWell() throws GameActionException {

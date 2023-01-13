@@ -3,7 +3,6 @@ package gopher1;
 import battlecode.common.Clock;
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;
-import gopher1.gopher0.robots.*;
 import gopher1.robots.*;
 
 public class RobotPlayer {
