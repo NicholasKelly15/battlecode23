@@ -7,6 +7,7 @@ public class Carrier extends Robot {
     private int adamantiumHeld;
     private int manaHeld;
     private int elixirHeld;
+    private int totalresources;
 
 
 
@@ -25,6 +26,7 @@ public class Carrier extends Robot {
         adamantiumHeld = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         manaHeld = rc.getResourceAmount(ResourceType.MANA);
         elixirHeld = rc.getResourceAmount(ResourceType.ELIXIR);
+        totalresources = adamantiumHeld+manaHeld+elixirHeld;
     }
 
 }
