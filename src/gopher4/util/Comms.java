@@ -1,12 +1,13 @@
-package gopher3.util;
+package gopher4.util;
 
 import battlecode.common.*;
 
-public class Comms3 {
+public class Comms {
 
     private RobotController rc;
     private SharedArrayQueue enemyLocationsQueue;
     private SharedArrayStack wellLocationsStack;
+    private SharedArrayStack hqLocationsStack;
 
     private final RobotType[] intToRobotType = new RobotType[]{
             RobotType.HEADQUARTERS,
@@ -28,6 +29,9 @@ public class Comms3 {
     private final int INDEX_OF_WELL_LOCATIONS_STACK_START = 35;
     private final int MEMORY_ALLOCATED_TO_WELL_LOCATIONS_STACK = 15;
 
+    private final int INDEX_OF_HQ_LOCATIONS_STACK_START = 50;
+    private final int MEMORY_ALLOCATED_TO_HQ_LOCATIONS_STACK = 5;
+
     private final int BIT_SHIFT_TYPE = 12;
     private final int BIT_SHIFT_X_LOCATION = 6;
     private final int BIT_SHIFT_Y_LOCATION = 0;
@@ -39,10 +43,11 @@ public class Comms3 {
 
 
 
-    public Comms3(RobotController rc) throws GameActionException {
+    public Comms(RobotController rc) throws GameActionException {
         this.rc = rc;
         enemyLocationsQueue = new SharedArrayQueue(rc, INDEX_OF_ENEMY_LOCATIONS_QUEUE_START, MEMORY_ALLOCATED_TO_ENEMY_LOCATIONS_QUEUE);
         wellLocationsStack = new SharedArrayStack(rc, INDEX_OF_WELL_LOCATIONS_STACK_START, MEMORY_ALLOCATED_TO_WELL_LOCATIONS_STACK);
+        hqLocationsStack = new SharedArrayStack(rc, INDEX_OF_HQ_LOCATIONS_STACK_START, MEMORY_ALLOCATED_TO_HQ_LOCATIONS_STACK);
     }
 
     // Call at start of turn.
@@ -88,6 +93,20 @@ public class Comms3 {
 
     public SharedArrayStack getWellLocationsStack() {
         return wellLocationsStack;
+    }
+
+    public boolean canReportHQLocation() throws GameActionException {
+        return !hqLocationsStack.isFull();
+    }
+
+    public void reportSelfHQLocation() throws GameActionException {
+        MapLocation loc = rc.getLocation();
+        int entry = generateEntryToReportSelfHQLocation(loc);
+        hqLocationsStack.push(entry);
+    }
+
+    public SharedArrayStack getHqLocationsStack() {
+        return hqLocationsStack;
     }
 
 
@@ -148,6 +167,12 @@ public class Comms3 {
                 | (y << BIT_SHIFT_Y_LOCATION);
     }
 
+    private int generateEntryToReportSelfHQLocation(MapLocation location) {
+        int x = location.x;
+        int y = location.y;
+        return (x << BIT_SHIFT_X_LOCATION)
+                | (y << BIT_SHIFT_Y_LOCATION);
+    }
 
     /**************************
      * Methods for decoding 16 bit representations into information.

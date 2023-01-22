@@ -1,7 +1,6 @@
-package gopher3.robots;
+package gopher4.robots;
 
 import battlecode.common.*;
-import gopher3.util.*;
 
 import java.util.Stack;
 

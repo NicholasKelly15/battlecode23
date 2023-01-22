@@ -1,4 +1,4 @@
-package gopher3.util;
+package gopher4.util;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;

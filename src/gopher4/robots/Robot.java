@@ -1,8 +1,8 @@
-package gopher3.robots;
+package gopher4.robots;
 
 import battlecode.common.*;
-import gopher3.util.Comms;
-import gopher3.util.Pathfinding;
+import gopher4.util.Comms;
+import gopher4.util.Pathfinding;
 
 import java.util.ArrayList;
 import java.util.Stack;
