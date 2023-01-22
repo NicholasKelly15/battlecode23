@@ -128,37 +128,5 @@ public abstract class Robot {
         comms.onTurnEnd();
     }
 
-    protected void retreatFromEnemies() throws GameActionException {
-        MapLocation averageEnemyPosition = getAverageEnemyLocation();
-        if (averageEnemyPosition != null) {
-            pathing.moveTowards(averageEnemyPosition.directionTo(location));
-        }
-    }
-
-    protected RobotInfo getNearestFriendlyHQ() {
-        RobotInfo nearestFriendlyHQ = null;
-        int nearestDistSquared = -1;
-        for (RobotInfo hq : knownFriendlyHQs) {
-            if (nearestFriendlyHQ == null || hq.getLocation().distanceSquaredTo(location) < nearestDistSquared) {
-                nearestFriendlyHQ = hq;
-                nearestDistSquared = hq.getLocation().distanceSquaredTo(location);
-            }
-        }
-        return nearestFriendlyHQ;
-    }
-
-    protected MapLocation getAverageEnemyLocation() {
-        int averageX = 0;
-        int averageY = 0;
-        for (RobotInfo enemy : sensedEnemyRobots) {
-            averageX += enemy.getLocation().x;
-            averageY += enemy.getLocation().y;
-        }
-        if (sensedEnemyRobots.length > 0) {
-            return new MapLocation((averageX / sensedEnemyRobots.length), (averageY / sensedEnemyRobots.length));
-        } else {
-            return null;
-        }
-    }
 
 }

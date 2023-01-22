@@ -11,8 +11,6 @@ public class Amplifier extends Robot {
 
     public void run() throws GameActionException, IllegalAccessException {
         super.run();
-
-        pathing.wander();
     }
 
 }
