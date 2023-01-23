@@ -103,7 +103,7 @@ public abstract class Robot {
         sensedWells = rc.senseNearbyWells();
 
         allSensedRobots = rc.senseNearbyRobots();
-        allSensedEnemyRobots = rc.senseNearbyRobots(-1, team);
+        allSensedEnemyRobots = rc.senseNearbyRobots(-1, team.opponent());
 
         sensedEnemyLaunchersStackPointer = 0;
         sensedEnemyCarriersStackPointer = 0;
