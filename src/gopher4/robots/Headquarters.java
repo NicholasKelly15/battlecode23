@@ -1,74 +1,42 @@
 package gopher4.robots;
-
+import java.lang.Math;
 import battlecode.common.*;
-
 
 public class Headquarters extends Robot {
     public Direction[] DirPref=new Direction[8];
+    int [][] spawnradius= {
+            {0,3},
+            {-2,2}, {-1,2}, {0,2}, {1,2}, {2,2},
+            {-2,1}, {-1,1}, {0,1}, {1,1}, {2,1},
+            {-3,0}, {-2,0}, {-1,0},{1,0}, {2,0}, {3,0},
+            {-2,-2}, {-1,-2}, {0,-2}, {1,-2}, {2,-2},
+            {-2,-1}, {-1,-1}, {0,-1}, {1,-1}, {2,-1},
+            {0,-3}
+    };
     public Headquarters(RobotController rc) throws Exception {
         super(rc);
 
         comms.reportSelfHQLocation();
-
-        int setup=0;
-        if(rc.getMapHeight()/2>rc.getLocation().y){
-            setup++;
-        }
-        if(rc.getMapWidth()/2>rc.getLocation().x){
-            setup+=2;
-        }
-        switch (setup){
-            case 0:
-                DirPref[0]= Direction.SOUTHWEST;
-                DirPref[1]= Direction.WEST;
-                DirPref[2]= Direction.SOUTH;
-                DirPref[3]= Direction.NORTHWEST;
-                DirPref[4]= Direction.SOUTHEAST;
-                DirPref[5]= Direction.NORTH;
-                DirPref[6]= Direction.EAST;
-                DirPref[7]= Direction.NORTHEAST;
-                break;
-            case 1:
-                DirPref[0]= Direction.NORTHWEST;
-                DirPref[1]= Direction.WEST;
-                DirPref[2]= Direction.NORTH;
-                DirPref[3]= Direction.SOUTHWEST;
-                DirPref[4]= Direction.NORTHEAST;
-                DirPref[5]= Direction.SOUTH;
-                DirPref[6]= Direction.EAST;
-                DirPref[7]= Direction.SOUTHEAST;
-                break;
-            case 2:
-                DirPref[0]= Direction.SOUTHEAST;
-                DirPref[1]= Direction.EAST;
-                DirPref[2]= Direction.SOUTH;
-                DirPref[3]= Direction.NORTHEAST;
-                DirPref[4]= Direction.SOUTHWEST;
-                DirPref[5]= Direction.NORTH;
-                DirPref[6]= Direction.WEST;
-                DirPref[7]= Direction.NORTHWEST;
-                break;
-            default:
-                DirPref[0]= Direction.NORTHEAST;
-                DirPref[1]= Direction.EAST;
-                DirPref[2]= Direction.NORTH;
-                DirPref[3]= Direction.SOUTHEAST;
-                DirPref[4]= Direction.NORTHWEST;
-                DirPref[5]= Direction.SOUTH;
-                DirPref[6]= Direction.WEST;
-                DirPref[7]= Direction.SOUTHWEST;
-        }
     }
 
     private MapLocation getOpenSpawnLocation() throws GameActionException {
         MapLocation spawnLoc = rc.getLocation();
-        for (Direction dir : DirPref) {
-            MapLocation newLoc = spawnLoc.add(dir);
-            if (rc.onTheMap(newLoc) && !rc.isLocationOccupied(newLoc) && rc.sensePassability(newLoc)) {
-                return newLoc;
+        MapLocation minLoc=null;
+        int minDist=100;
+        int heuro=0;
+        MapLocation thePoint= new MapLocation (rc.getMapHeight()/2, rc.getMapWidth()/2);
+        if(getNearestKnownWell(null)!=null) {
+            thePoint= getNearestKnownWell(null);
+        }
+        for (int[] adj : spawnradius) {
+            MapLocation newLoc = spawnLoc.translate(adj[0],adj[1]);
+            heuro=Math.max(Math.abs(thePoint.x-newLoc.x),Math.abs(thePoint.y-newLoc.y));
+            if ((minDist>heuro) && !rc.isLocationOccupied(newLoc) && rc.sensePassability(newLoc)) {
+                minDist=heuro;
+                minLoc=newLoc;
             }
         }
-        return null;
+        return minLoc;
     }
 
     public void run() throws GameActionException, IllegalAccessException {
