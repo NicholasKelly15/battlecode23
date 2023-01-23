@@ -29,30 +29,46 @@ public class Carrier extends Robot {
         pathing = new Pathfinding(rc);
 
         wellsSearchedLookingForTarget = new Stack<MapLocation>();
-
-        MapLocation nearestKnownWell = getNearestKnownWell(null);
-        if (nearestKnownWell != null) {
-            currentTargetWell = nearestKnownWell;
-            mode = 0; // collectResources
-        } else {
-            mode = 3; // explore
-        }
     }
 
     public void run() throws GameActionException, IllegalAccessException {
         super.run();
         updateInternalVariables();
 
-        rc.setIndicatorString("Mode: " + modeStrings[mode]);
-
         switch (mode) {
-            case 0:     collectResources();
-            case 1:     runAway();
-            case 2:     returnToBase();
-            case 3:     explore();
+            case -1:    setInitialMode(); break;
+            case 0:     collectResources(); break;
+            case 1:     runAway(); break;
+            case 2:     returnToBase(); break;
+            case 3:     explore(); break;
         }
 
+        rc.setIndicatorString("Mode: " + modeStrings[mode]);
+
         endTurn();
+    }
+
+    private void setInitialMode() throws GameActionException, IllegalAccessException {
+        MapLocation nearestKnownWell = getNearestKnownWell(null);
+
+        if (DEBUG_MODE && nearestKnownWell != null) {
+            rc.setIndicatorLine(location, nearestKnownWell, 0, 0, 255);
+        }
+
+        if (nearestKnownWell != null) {
+            currentTargetWell = nearestKnownWell;
+            mode = 0; // collectResources
+        } else {
+            mode = 3; // explore
+        }
+
+        switch (mode) {
+            case -1:    setInitialMode(); break;
+            case 0:     collectResources(); break;
+            case 1:     runAway(); break;
+            case 2:     returnToBase(); break;
+            case 3:     explore(); break;
+        }
     }
 
     private void updateInternalVariables() {
@@ -64,6 +80,10 @@ public class Carrier extends Robot {
 
     // travels to and collects from well.
     private void collectResources() throws GameActionException {
+        if (DEBUG_MODE) {
+            rc.setIndicatorLine(location, currentTargetWell, 0, 255, 0);
+        }
+
         if (sensedEnemyLaunchers.size() > 0 || sensedEnemyDestabilizers.size() > 0) {
             mode = 1; // runAway
             runAway();
@@ -81,13 +101,16 @@ public class Carrier extends Robot {
             if (currentTargetWell.distanceSquaredTo(location) <= 10) {
                 boolean isSpotOnTargetWellOpen = isSpotOnWellOpen(currentTargetWell);
                 if (isSpotOnTargetWellOpen) {
-                    if (rc.canCollectResource(currentTargetWell, -1)) {
-                        rc.collectResource(currentTargetWell, -1);
-                        if (rc.canMove(location.directionTo(currentTargetWell))) {
-                            rc.move(location.directionTo(currentTargetWell));
-                        }
-                    } else {
+                    int moveTries = 0;
+                    while (rc.isMovementReady() && currentTargetWell.distanceSquaredTo(location) > 2 && moveTries++ < 4) {
                         pathing.moveTo(currentTargetWell);
+                    }
+                    if (rc.isMovementReady() && currentTargetWell.distanceSquaredTo(location) <= 2 && rc.canMove(location.directionTo(currentTargetWell))) {
+                        rc.move(location.directionTo(currentTargetWell));
+                    }
+
+                    while (rc.isActionReady() && totalResources < GameConstants.CARRIER_CAPACITY && rc.canCollectResource(currentTargetWell, -1)) {
+                        rc.collectResource(currentTargetWell, -1);
                     }
                 } else {
                     wellsSearchedLookingForTarget.push(currentTargetWell);
@@ -101,6 +124,8 @@ public class Carrier extends Robot {
                         explore();
                     }
                 }
+            } else {
+                pathing.moveTo(currentTargetWell);
             }
 
         }
