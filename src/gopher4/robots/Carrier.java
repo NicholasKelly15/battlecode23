@@ -84,7 +84,7 @@ public class Carrier extends Robot {
             rc.setIndicatorLine(location, currentTargetWell, 0, 255, 0);
         }
 
-        if (sensedEnemyLaunchers.size() > 0 || sensedEnemyDestabilizers.size() > 0) {
+        if (sensedEnemyLaunchersStackPointer > 0 || sensedEnemyDestabilizersStackPointer > 0) {
             mode = 1; // runAway
             runAway();
             return;

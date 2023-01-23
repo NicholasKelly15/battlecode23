@@ -16,27 +16,27 @@ public abstract class Robot {
     protected MapLocation location;
     protected Team team;
     protected RobotType type;
+    protected int tilesInVision;
 
     protected WellInfo[] sensedWells;
 
     protected Stack<MapLocation> knownFriendlyHQs;
 
-    protected RobotInfo[] fullRangeSensedRobots;
-    protected RobotInfo[] sensedFriendlyRobots;
-    protected RobotInfo[] sensedEnemyRobots;
+    protected RobotInfo[] allSensedRobots;
+    protected RobotInfo[] allSensedEnemyRobots;
 
-    protected Stack<RobotInfo> sensedEnemyAmplifiers;
-    protected Stack<RobotInfo> sensedEnemyBoosters;
-    protected Stack<RobotInfo> sensedEnemyCarriers;
-    protected Stack<RobotInfo> sensedEnemyDestabilizers;
-    protected Stack<RobotInfo> sensedEnemyHeadquarters;
-    protected Stack<RobotInfo> sensedEnemyLaunchers;
-
-    protected Stack<RobotInfo> sensedFriendlyAmplifiers;
-    protected Stack<RobotInfo> sensedFriendlyBoosters;
-    protected Stack<RobotInfo> sensedFriendlyCarriers;
-    protected Stack<RobotInfo> sensedFriendlyDestabilizers;
-    protected Stack<RobotInfo> sensedFriendlyLaunchers;
+    protected RobotInfo[] sensedEnemyLaunchers;
+    protected int sensedEnemyLaunchersStackPointer;
+    protected RobotInfo[] sensedEnemyCarriers;
+    protected int sensedEnemyCarriersStackPointer;
+    protected RobotInfo[] sensedEnemyHeadquarters;
+    protected int sensedEnemyHeadquartersStackPointer;
+    protected RobotInfo[] sensedEnemyDestabilizers;
+    protected int sensedEnemyDestabilizersStackPointer;
+    protected RobotInfo[] sensedEnemyBoosters;
+    protected int sensedEnemyBoostersStackPointer;
+    protected RobotInfo[] sensedEnemyAmplifiers;
+    protected int sensedEnemyAmplifiersStackPointer;
 
     protected int width;
     protected int height;
@@ -58,6 +58,30 @@ public abstract class Robot {
 
         team = rc.getTeam();
         type = rc.getType();
+        switch (type) {
+            case DESTABILIZER:
+            case LAUNCHER:
+            case BOOSTER:
+            case CARRIER:
+                tilesInVision = 68;         break;
+            case AMPLIFIER:
+            case HEADQUARTERS:
+                tilesInVision = 108;        break;
+
+        }
+
+        sensedEnemyLaunchers = new RobotInfo[tilesInVision];
+        sensedEnemyLaunchersStackPointer = 0;
+        sensedEnemyCarriers = new RobotInfo[tilesInVision];
+        sensedEnemyCarriersStackPointer = 0;
+        sensedEnemyHeadquarters = new RobotInfo[4];
+        sensedEnemyHeadquartersStackPointer = 0;
+        sensedEnemyDestabilizers = new RobotInfo[tilesInVision];
+        sensedEnemyDestabilizersStackPointer = 0;
+        sensedEnemyBoosters = new RobotInfo[tilesInVision];
+        sensedEnemyBoostersStackPointer = 0;
+        sensedEnemyAmplifiers = new RobotInfo[tilesInVision];
+        sensedEnemyAmplifiersStackPointer = 0;
 
         knownFriendlyHQs = new Stack<MapLocation>();
 
@@ -78,63 +102,39 @@ public abstract class Robot {
         // Update sensing variables
         sensedWells = rc.senseNearbyWells();
 
-        fullRangeSensedRobots = rc.senseNearbyRobots();
-        sensedFriendlyRobots = rc.senseNearbyRobots(type.visionRadiusSquared, team);
-        sensedEnemyRobots = rc.senseNearbyRobots(type.visionRadiusSquared, team.opponent());
+        allSensedRobots = rc.senseNearbyRobots();
+        allSensedEnemyRobots = rc.senseNearbyRobots(-1, team);
 
-        sensedEnemyAmplifiers = new Stack<>();
-        sensedEnemyBoosters = new Stack<>();
-        sensedEnemyCarriers = new Stack<>();
-        sensedEnemyDestabilizers = new Stack<>();
-        sensedEnemyHeadquarters = new Stack<>();
-        sensedEnemyLaunchers = new Stack<>();
+        sensedEnemyLaunchersStackPointer = 0;
+        sensedEnemyCarriersStackPointer = 0;
+        sensedEnemyHeadquartersStackPointer = 0;
+        sensedEnemyDestabilizersStackPointer = 0;
+        sensedEnemyBoostersStackPointer = 0;
+        sensedEnemyAmplifiersStackPointer = 0;
 
-        sensedFriendlyAmplifiers = new Stack<>();
-        sensedFriendlyBoosters = new Stack<>();
-        sensedFriendlyCarriers = new Stack<>();
-        sensedFriendlyDestabilizers = new Stack<>();
-        sensedFriendlyLaunchers = new Stack<>();
-
-        for (RobotInfo robot : sensedEnemyRobots) {
-            switch (robot.getType()) {
-                case AMPLIFIER:
-                    sensedEnemyAmplifiers.push(robot);
-                    break;
-                case BOOSTER:
-                    sensedEnemyBoosters.push(robot);
-                    break;
-                case CARRIER:
-                    sensedEnemyCarriers.push(robot);
-                    break;
-                case DESTABILIZER:
-                    sensedEnemyDestabilizers.push(robot);
-                    break;
-                case HEADQUARTERS:
-                    sensedEnemyHeadquarters.push(robot);
-                    break;
-                case LAUNCHER:
-                    sensedEnemyLaunchers.push(robot);
-                    break;
-            }
-        }
-
-        for (RobotInfo robot : sensedFriendlyRobots) {
-            switch (robot.getType()) {
-                case AMPLIFIER:
-                    sensedFriendlyAmplifiers.push(robot);
-                    break;
-                case BOOSTER:
-                    sensedFriendlyBoosters.push(robot);
-                    break;
-                case CARRIER:
-                    sensedFriendlyCarriers.push(robot);
-                    break;
-                case DESTABILIZER:
-                    sensedFriendlyDestabilizers.push(robot);
-                    break;
-                case LAUNCHER:
-                    sensedFriendlyLaunchers.push(robot);
-                    break;
+        // put the enemies into buckets
+        if (allSensedEnemyRobots != null) {
+            for (RobotInfo robot : allSensedEnemyRobots) {
+                switch (robot.getType()) {
+                    case LAUNCHER:
+                        sensedEnemyLaunchers[sensedEnemyLaunchersStackPointer++] = robot;
+                        break;
+                    case CARRIER:
+                        sensedEnemyCarriers[sensedEnemyCarriersStackPointer++] = robot;
+                        break;
+                    case HEADQUARTERS:
+                        sensedEnemyHeadquarters[sensedEnemyHeadquartersStackPointer++] = robot;
+                        break;
+                    case DESTABILIZER:
+                        sensedEnemyDestabilizers[sensedEnemyDestabilizersStackPointer++] = robot;
+                        break;
+                    case BOOSTER:
+                        sensedEnemyBoosters[sensedEnemyBoostersStackPointer++] = robot;
+                        break;
+                    case AMPLIFIER:
+                        sensedEnemyAmplifiers[sensedEnemyAmplifiersStackPointer++] = robot;
+                        break;
+                }
             }
         }
 
