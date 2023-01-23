@@ -2,13 +2,14 @@ package gopher4.robots;
 
 import battlecode.common.*;
 
-import java.util.Stack;
-
 
 public class Headquarters extends Robot {
     public Direction[] DirPref=new Direction[8];
     public Headquarters(RobotController rc) throws Exception {
         super(rc);
+
+        comms.reportSelfHQLocation();
+
         int setup=0;
         if(rc.getMapHeight()/2>rc.getLocation().y){
             setup++;

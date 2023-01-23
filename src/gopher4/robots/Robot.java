@@ -97,6 +97,16 @@ public abstract class Robot {
             rc.resign();
         }
 
+        if (knownFriendlyHQs.isEmpty() && rc.getRoundNum() > 1) {
+            for (int intLocation : comms.getHqLocationsStack()) {
+                knownFriendlyHQs.push(comms.getMapLocationFromBits(intLocation));
+            }
+            for (MapLocation location : knownFriendlyHQs) {
+                System.out.println("HQ Location");
+                System.out.println(location);
+            }
+        }
+
         location = rc.getLocation();
 
         // Update sensing variables
@@ -139,6 +149,8 @@ public abstract class Robot {
         }
 
         // dealing with reporting known wells and reading about wells from the shared array.
+
+        // first locally record wells not known from the shared array
         for (int intWellLocation : comms.getWellLocationsStack()) {
             MapLocation location = comms.getMapLocationFromBits(intWellLocation);
             if (knownWellsMap[location.x][location.y] < 4) { // if the bot hasn't gotten this information from the shared array before
@@ -155,6 +167,7 @@ public abstract class Robot {
             }
         }
 
+        // locally record wells that were sensed if they were not already known somehow
         for (WellInfo well : sensedWells) {
             if (knownWellsMap[well.getMapLocation().x][well.getMapLocation().y] == 0) { // if this well was not already known.
                 byte wellType = -1;
@@ -169,6 +182,7 @@ public abstract class Robot {
             }
         }
 
+        // record any wells that this robot knows to the shared array if the shared array does not know about the well
         if (rc.canWriteSharedArray(0, 0) && comms.canReportWellLocation()) {
             for (int wellIndex = 0 ; wellIndex < knownWellsStackPointer ; wellIndex++) {
                 MapLocation location = knownWellsStack[wellIndex];

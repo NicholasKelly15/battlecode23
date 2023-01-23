@@ -102,7 +102,7 @@ public class Carrier extends Robot {
                 boolean isSpotOnTargetWellOpen = isSpotOnWellOpen(currentTargetWell);
                 if (isSpotOnTargetWellOpen) {
                     int moveTries = 0;
-                    while (rc.isMovementReady() && currentTargetWell.distanceSquaredTo(location) > 2 && moveTries++ < 4) {
+                    while (rc.isMovementReady() && currentTargetWell.distanceSquaredTo(location) > 2 && moveTries++ < 5) {
                         pathing.moveTo(currentTargetWell);
                     }
                     if (rc.isMovementReady() && currentTargetWell.distanceSquaredTo(location) <= 2 && rc.canMove(location.directionTo(currentTargetWell))) {
@@ -111,6 +111,14 @@ public class Carrier extends Robot {
 
                     while (rc.isActionReady() && totalResources < GameConstants.CARRIER_CAPACITY && rc.canCollectResource(currentTargetWell, -1)) {
                         rc.collectResource(currentTargetWell, -1);
+                    }
+
+                    int resourcesHeld = rc.getResourceAmount(ResourceType.ADAMANTIUM)
+                            + rc.getResourceAmount(ResourceType.MANA)
+                            + rc.getResourceAmount(ResourceType.ELIXIR);
+                    if (rc.isMovementReady() && resourcesHeld == GameConstants.CARRIER_CAPACITY) {
+                        mode = 2;
+                        returnToBase();
                     }
                 } else {
                     wellsSearchedLookingForTarget.push(currentTargetWell);
