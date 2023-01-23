@@ -121,6 +121,10 @@ public class SharedArrayQueue implements Iterable<Integer> {
         return currentSize == 0;
     }
 
+    public int getSize() {
+        return currentSize;
+    }
+
     public void insert(int item) throws GameActionException {
         if (isFull()) {
             throw new AssertionError("Cannot insert to a full array queue.");

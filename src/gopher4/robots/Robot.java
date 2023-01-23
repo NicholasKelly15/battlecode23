@@ -3,8 +3,11 @@ package gopher4.robots;
 import battlecode.common.*;
 import gopher4.util.Comms;
 import gopher4.util.Pathfinding;
+import gopher4.util.SharedArrayQueue;
+import gopher4.util.SharedArrayStack;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Stack;
 
 public abstract class Robot {
@@ -17,7 +20,7 @@ public abstract class Robot {
     protected Team team;
     protected RobotType type;
 
-    protected ArrayList<RobotInfo> knownFriendlyHQs;
+    protected Stack<MapLocation> knownFriendlyHQs;
 
     protected RobotInfo[] fullRangeSensedRobots;
     protected RobotInfo[] sensedFriendlyRobots;
@@ -47,7 +50,7 @@ public abstract class Robot {
         team = rc.getTeam();
         type = rc.getType();
 
-        knownFriendlyHQs = new ArrayList<>();
+        knownFriendlyHQs = new Stack<MapLocation>();
     }
 
     public void run() throws GameActionException, IllegalAccessException {
@@ -67,7 +70,6 @@ public abstract class Robot {
         sensedFriendlyBoosters = new Stack<>();
         sensedFriendlyCarriers = new Stack<>();
         sensedFriendlyDestabilizers = new Stack<>();
-        sensedFriendlyHeadquarters = new Stack<>();
         sensedFriendlyLaunchers = new Stack<>();
 
         for (RobotInfo robot : sensedEnemyRobots) {
@@ -107,18 +109,9 @@ public abstract class Robot {
                 case DESTABILIZER:
                     sensedFriendlyDestabilizers.push(robot);
                     break;
-                case HEADQUARTERS:
-                    sensedFriendlyHeadquarters.push(robot);
-                    break;
                 case LAUNCHER:
                     sensedFriendlyLaunchers.push(robot);
                     break;
-            }
-        }
-
-        for (RobotInfo robot : sensedFriendlyRobots) {
-            if (robot.getType() == RobotType.HEADQUARTERS && !knownFriendlyHQs.contains(robot)) {
-                knownFriendlyHQs.add(robot);
             }
         }
 
@@ -126,6 +119,39 @@ public abstract class Robot {
 
     public void endTurn() throws GameActionException {
         comms.onTurnEnd();
+    }
+
+    protected MapLocation[] getSharedWellLocations() throws GameActionException {
+        SharedArrayStack sharedWells = comms.getWellLocationsStack();
+        MapLocation[] wellLocations = new MapLocation[sharedWells.getSize()];
+        int arrayIndex = 0;
+        for (int intLocation : sharedWells) {
+            MapLocation location = comms.getMapLocationFromBits(intLocation);
+            wellLocations[arrayIndex++] = location;
+        }
+        return wellLocations;
+    }
+
+    protected MapLocation getNearestKnownWell(Stack<MapLocation> wellsToExclude) throws GameActionException {
+        MapLocation[] knownWells = getSharedWellLocations();
+        MapLocation nearestWell = null;
+        MapLocation thisLocation = location;
+        int closestDistance = 10000;
+        for (MapLocation location : knownWells) {
+            if (location.distanceSquaredTo(thisLocation) < closestDistance) {
+                boolean isExcluded = false;
+                for (MapLocation exclude : wellsToExclude) {
+                    if (exclude.x == location.x && exclude.y == location.y) {
+                        isExcluded = true;
+                    }
+                }
+                if (!isExcluded) {
+                    nearestWell = location;
+                    closestDistance = location.distanceSquaredTo(thisLocation);
+                }
+            }
+        }
+        return nearestWell;
     }
 
 

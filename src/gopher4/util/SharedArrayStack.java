@@ -51,6 +51,10 @@ public class SharedArrayStack implements Iterable<Integer> {
         return getCurrentStackPointer() == INDEX_OF_STACK_MEMORY;
     }
 
+    public int getSize() throws GameActionException {
+        return getCurrentStackPointer() - INDEX_OF_STACK_MEMORY;
+    }
+
     public void push(int item) throws GameActionException {
         int currentIndex = getCurrentStackPointer();
         rc.writeSharedArray(currentIndex, item);
