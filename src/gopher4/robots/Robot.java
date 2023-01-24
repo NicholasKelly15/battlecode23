@@ -255,6 +255,33 @@ public abstract class Robot {
                             isExcluded = true;
                         }
                     }
+
+                    if (!knownFriendlyHQs.isEmpty()) {
+                        MapLocation assignedHQ = null;
+                        int closestHQDistance = 10000;
+                        for (MapLocation hq : knownFriendlyHQs) {
+                            if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                                assignedHQ = hq;
+                                closestHQDistance = hq.distanceSquaredTo(location);
+                            }
+                        }
+                        if (!assignedHQ.equals(homeHQ)) {
+                            isExcluded = true;
+                        }
+                    }
+
+                    if (!isExcluded) {
+                        nearestWell = location;
+                        closestDistance = location.distanceSquaredTo(thisLocation);
+                    }
+                }
+            }
+        } else {
+            for (int i = 0 ; i < knownWellsStackPointer ; i++) {
+                MapLocation location = knownWellsStack[i];
+                boolean isExcluded = false;
+
+                if (!knownFriendlyHQs.isEmpty()) {
                     MapLocation assignedHQ = null;
                     int closestHQDistance = 10000;
                     for (MapLocation hq : knownFriendlyHQs) {
@@ -266,27 +293,8 @@ public abstract class Robot {
                     if (!assignedHQ.equals(homeHQ)) {
                         isExcluded = true;
                     }
-                    if (!isExcluded) {
-                        nearestWell = location;
-                        closestDistance = location.distanceSquaredTo(thisLocation);
-                    }
                 }
-            }
-        } else {
-            for (int i = 0 ; i < knownWellsStackPointer ; i++) {
-                MapLocation location = knownWellsStack[i];
-                boolean isExcluded = false;
-                MapLocation assignedHQ = null;
-                int closestHQDistance = 10000;
-                for (MapLocation hq : knownFriendlyHQs) {
-                    if (hq.distanceSquaredTo(location) < closestHQDistance) {
-                        assignedHQ = hq;
-                        closestHQDistance = hq.distanceSquaredTo(location);
-                    }
-                }
-                if (!assignedHQ.equals(homeHQ)) {
-                    isExcluded = true;
-                }
+
                 if (!isExcluded && location.distanceSquaredTo(thisLocation) < closestDistance) {
                     nearestWell = location;
                     closestDistance = location.distanceSquaredTo(thisLocation);
