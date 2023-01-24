@@ -37,7 +37,9 @@ public class Pathfinding {
                 direction.rotateLeft(),
                 direction.rotateRight(),
                 direction.rotateLeft().rotateLeft(),
-                direction.rotateRight().rotateRight()
+                direction.rotateRight().rotateRight(),
+                direction.rotateRight().rotateRight().rotateRight(),
+                direction.rotateLeft().rotateLeft().rotateLeft()
         };
         for (Direction d : optimalTryOrder) {
             if (d != null && rc.canMove(d)) {
