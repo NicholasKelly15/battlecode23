@@ -13,7 +13,6 @@ public abstract class Robot {
     protected Pathfinding pathing;
     protected Comms comms;
 
-    protected MapLocation location;
     protected Team team;
     protected RobotType type;
     protected int tilesInVision;
@@ -49,6 +48,7 @@ public abstract class Robot {
 
     protected final boolean DEBUG_MODE = true;
     protected final boolean RESIGN_MODE = true;
+    protected final int turnsToResign = 200;
     protected final int DISTANCE_SQUARED_TO_NOT_REPORT_NEW_WELL = 25;
 
 
@@ -94,11 +94,9 @@ public abstract class Robot {
     }
 
     public void run() throws GameActionException, IllegalAccessException {
-        if (RESIGN_MODE && rc.getRoundNum() > 100) {
+        if (RESIGN_MODE && rc.getRoundNum() > turnsToResign) {
             rc.resign();
         }
-
-        location = rc.getLocation();
 
         if (knownFriendlyHQs.isEmpty() && rc.getRoundNum() > 1) {
             for (int intLocation : comms.getHqLocationsStack()) {
@@ -107,8 +105,8 @@ public abstract class Robot {
             int closestHQDistance = 10000;
             MapLocation closestHQ = null;
             for (MapLocation hqLocation : knownFriendlyHQs) {
-                if (hqLocation != null && hqLocation.distanceSquaredTo(location) < closestHQDistance) {
-                    closestHQDistance = hqLocation.distanceSquaredTo(location);
+                if (hqLocation != null && hqLocation.distanceSquaredTo(rc.getLocation()) < closestHQDistance) {
+                    closestHQDistance = hqLocation.distanceSquaredTo(rc.getLocation());
                     closestHQ = hqLocation;
                 }
             }
@@ -155,8 +153,6 @@ public abstract class Robot {
         }
 
         updateWellInformation();
-
-        rc.setIndicatorString("Home: " + homeHQ);
 
     }
 
@@ -217,7 +213,6 @@ public abstract class Robot {
                             case 2: type = ResourceType.MANA; break;
                             case 3: type = ResourceType.ELIXIR; break;
                         }
-                        rc.setIndicatorString("Reported Well at: " + (location.x) + ", " + location.y);
                         comms.reportWellLocation(location, type);
                         knownWellsMap[location.x][location.y] = (byte) (mapValue + 3);
                     }
@@ -243,12 +238,11 @@ public abstract class Robot {
 
     protected MapLocation getNearestKnownWell(Stack<MapLocation> wellsToExclude) throws GameActionException {
         MapLocation nearestWell = null;
-        MapLocation thisLocation = location;
         int closestDistance = 10000;
         if (wellsToExclude != null) {
             for (int i = 0 ; i < knownWellsStackPointer ; i++) {
                 MapLocation location = knownWellsStack[i];
-                if (location.distanceSquaredTo(thisLocation) < closestDistance) {
+                if (location.distanceSquaredTo(rc.getLocation()) < closestDistance) {
                     boolean isExcluded = false;
                     for (MapLocation exclude : wellsToExclude) {
                         if (exclude.equals(location)) {
@@ -272,7 +266,7 @@ public abstract class Robot {
 
                     if (!isExcluded) {
                         nearestWell = location;
-                        closestDistance = location.distanceSquaredTo(thisLocation);
+                        closestDistance = location.distanceSquaredTo(rc.getLocation());
                     }
                 }
             }
@@ -295,9 +289,9 @@ public abstract class Robot {
                     }
                 }
 
-                if (!isExcluded && location.distanceSquaredTo(thisLocation) < closestDistance) {
+                if (!isExcluded && location.distanceSquaredTo(rc.getLocation()) < closestDistance) {
                     nearestWell = location;
-                    closestDistance = location.distanceSquaredTo(thisLocation);
+                    closestDistance = location.distanceSquaredTo(rc.getLocation());
                 }
             }
         }
