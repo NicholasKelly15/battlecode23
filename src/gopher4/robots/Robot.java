@@ -21,6 +21,7 @@ public abstract class Robot {
     protected WellInfo[] sensedWells;
 
     protected Stack<MapLocation> knownFriendlyHQs;
+    protected MapLocation homeHQ;
 
     protected RobotInfo[] allSensedRobots;
     protected RobotInfo[] allSensedEnemyRobots;
@@ -97,17 +98,22 @@ public abstract class Robot {
             rc.resign();
         }
 
+        location = rc.getLocation();
+
         if (knownFriendlyHQs.isEmpty() && rc.getRoundNum() > 1) {
             for (int intLocation : comms.getHqLocationsStack()) {
                 knownFriendlyHQs.push(comms.getMapLocationFromBits(intLocation));
             }
-            for (MapLocation location : knownFriendlyHQs) {
-                System.out.println("HQ Location");
-                System.out.println(location);
+            int closestHQDistance = 10000;
+            MapLocation closestHQ = null;
+            for (MapLocation hqLocation : knownFriendlyHQs) {
+                if (hqLocation != null && hqLocation.distanceSquaredTo(location) < closestHQDistance) {
+                    closestHQDistance = hqLocation.distanceSquaredTo(location);
+                    closestHQ = hqLocation;
+                }
             }
+            homeHQ = closestHQ;
         }
-
-        location = rc.getLocation();
 
         // Update sensing variables
         sensedWells = rc.senseNearbyWells();
@@ -148,6 +154,13 @@ public abstract class Robot {
             }
         }
 
+        updateWellInformation();
+
+        rc.setIndicatorString("Home: " + homeHQ);
+
+    }
+
+    private void updateWellInformation() throws GameActionException {
         // dealing with reporting known wells and reading about wells from the shared array.
 
         // first locally record wells not known from the shared array
@@ -211,14 +224,6 @@ public abstract class Robot {
                 }
             }
         }
-
-        if (DEBUG_MODE) {
-//            for (int i = 0 ; i < knownWellsStackPointer ; i++) {
-//                MapLocation location = knownWellsStack[i];
-//                rc.setIndicatorLine(location, rc.getLocation(), 255, 0, 0);
-//            }
-        }
-
     }
 
     public void endTurn() throws GameActionException {
@@ -246,9 +251,20 @@ public abstract class Robot {
                 if (location.distanceSquaredTo(thisLocation) < closestDistance) {
                     boolean isExcluded = false;
                     for (MapLocation exclude : wellsToExclude) {
-                        if (exclude.x == location.x && exclude.y == location.y) {
+                        if (exclude.equals(location)) {
                             isExcluded = true;
                         }
+                    }
+                    MapLocation assignedHQ = null;
+                    int closestHQDistance = 10000;
+                    for (MapLocation hq : knownFriendlyHQs) {
+                        if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                            assignedHQ = hq;
+                            closestHQDistance = hq.distanceSquaredTo(location);
+                        }
+                    }
+                    if (!assignedHQ.equals(homeHQ)) {
+                        isExcluded = true;
                     }
                     if (!isExcluded) {
                         nearestWell = location;
@@ -259,7 +275,19 @@ public abstract class Robot {
         } else {
             for (int i = 0 ; i < knownWellsStackPointer ; i++) {
                 MapLocation location = knownWellsStack[i];
-                if (location.distanceSquaredTo(thisLocation) < closestDistance) {
+                boolean isExcluded = false;
+                MapLocation assignedHQ = null;
+                int closestHQDistance = 10000;
+                for (MapLocation hq : knownFriendlyHQs) {
+                    if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                        assignedHQ = hq;
+                        closestHQDistance = hq.distanceSquaredTo(location);
+                    }
+                }
+                if (!assignedHQ.equals(homeHQ)) {
+                    isExcluded = true;
+                }
+                if (!isExcluded && location.distanceSquaredTo(thisLocation) < closestDistance) {
                     nearestWell = location;
                     closestDistance = location.distanceSquaredTo(thisLocation);
                 }

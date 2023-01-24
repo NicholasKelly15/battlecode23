@@ -43,7 +43,7 @@ public class Carrier extends Robot {
             case 3:     explore(); break;
         }
 
-        rc.setIndicatorString("Mode: " + modeStrings[mode]);
+//        rc.setIndicatorString("Mode: " + modeStrings[mode]);
 
         endTurn();
     }
@@ -80,10 +80,6 @@ public class Carrier extends Robot {
 
     // travels to and collects from well.
     private void collectResources() throws GameActionException {
-        if (DEBUG_MODE) {
-            rc.setIndicatorLine(location, currentTargetWell, 0, 255, 0);
-        }
-
         if (sensedEnemyLaunchersStackPointer > 0 || sensedEnemyDestabilizersStackPointer > 0) {
             mode = 1; // runAway
             runAway();
