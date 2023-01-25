@@ -1,9 +1,7 @@
 package gopher4.robots;
 
 import battlecode.common.*;
-import gopher4.util.Comms;
-import gopher4.util.Pathfinding;
-import gopher4.util.SharedArrayStack;
+import gopher4.util.*;
 
 import java.util.Stack;
 
@@ -47,7 +45,7 @@ public abstract class Robot {
 
 
     protected final boolean DEBUG_MODE = true;
-    protected final boolean RESIGN_MODE = true;
+    protected final boolean RESIGN_MODE = false;
     protected final int turnsToResign = 200;
     protected final int DISTANCE_SQUARED_TO_NOT_REPORT_NEW_WELL = 25;
 
@@ -91,6 +89,46 @@ public abstract class Robot {
         knownWellsMap = new byte[width][height];
         knownWellsStack = new MapLocation[150];
         knownWellsStackPointer = 0;
+
+
+        int startingByte = Clock.getBytecodeNum();
+        FibMinHeap heap = new FibMinHeap();
+        System.out.println("Creation: " + (Clock.getBytecodeNum() - startingByte - 1));
+        startingByte = Clock.getBytecodeNum();
+        heap.insert(1);
+        heap.insert(10);
+        heap.insert(7);
+        heap.insert(4);
+        heap.insert(5);
+        heap.insert(1);
+        heap.insert(10);
+        heap.insert(7);
+        heap.insert(4);
+        heap.insert(5);
+        heap.insert(1);
+        heap.insert(10);
+        heap.insert(7);
+        heap.insert(4);
+        heap.insert(5);
+        heap.insert(1);
+        heap.insert(10);
+        heap.insert(7);
+        heap.insert(4);
+        heap.insert(5);
+        heap.insert(1);
+        heap.insert(10);
+        heap.insert(7);
+        heap.insert(4);
+        heap.insert(5);
+        System.out.println("25 Insertions: " + (Clock.getBytecodeNum() - startingByte - 1));
+
+        startingByte = Clock.getBytecodeNum();
+        System.out.println(heap.remove());
+        System.out.println("Remove: " + (Clock.getBytecodeNum() - startingByte - 1));
+
+        rc.resign();
+
+
     }
 
     public void run() throws GameActionException, IllegalAccessException {
