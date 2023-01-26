@@ -91,44 +91,6 @@ public abstract class Robot {
         knownWellsStackPointer = 0;
 
 
-        int startingByte = Clock.getBytecodeNum();
-        FibMinHeap heap = new FibMinHeap();
-        System.out.println("Creation: " + (Clock.getBytecodeNum() - startingByte - 1));
-        startingByte = Clock.getBytecodeNum();
-        heap.insert(1);
-        heap.insert(10);
-        heap.insert(7);
-        heap.insert(4);
-        heap.insert(5);
-        heap.insert(1);
-        heap.insert(10);
-        heap.insert(7);
-        heap.insert(4);
-        heap.insert(5);
-        heap.insert(1);
-        heap.insert(10);
-        heap.insert(7);
-        heap.insert(4);
-        heap.insert(5);
-        heap.insert(1);
-        heap.insert(10);
-        heap.insert(7);
-        heap.insert(4);
-        heap.insert(5);
-        heap.insert(1);
-        heap.insert(10);
-        heap.insert(7);
-        heap.insert(4);
-        heap.insert(5);
-        System.out.println("25 Insertions: " + (Clock.getBytecodeNum() - startingByte - 1));
-
-        startingByte = Clock.getBytecodeNum();
-        System.out.println(heap.remove());
-        System.out.println("Remove: " + (Clock.getBytecodeNum() - startingByte - 1));
-
-        rc.resign();
-
-
     }
 
     public void run() throws GameActionException, IllegalAccessException {

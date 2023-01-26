@@ -1,9 +1,6 @@
 package gopher4.util;
 
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
+import battlecode.common.*;
 
 import java.util.ArrayList;
 
@@ -20,6 +17,17 @@ public class Pathfinding {
             Direction.SOUTHWEST,
             Direction.WEST,
             Direction.NORTHWEST,
+    };
+
+    private final int[][][] directionOrdinalToGoalPoints = new int[][][]{
+            {{-1, 4}, {0, 4}, {1, 4}},          // North
+            {{2, 4}, {3, 3}, {4, 2}},           // Northeast
+            {{4, 1}, {4, 0}, {4, -1}},          // East
+            {{4, -2}, {3, -3}, {2, -4}},        // Southeast
+            {{1, -4}, {0, -4}, {-1, -4}},       // South
+            {{-2, -4}, {-3, -3}, {-4, -2}},     // Southwest
+            {{-4, -1}, {-4, 0}, {-4, 1}},       // West
+            {{-4, 2}, {-3, 3}, {-2, 4}}         // Northwest
     };
 
     public Pathfinding(RobotController rc) {
@@ -60,6 +68,55 @@ public class Pathfinding {
         if (direction != null && rc.canMove(direction)) {
             rc.move(direction);
         }
+    }
+
+
+    public void moveTowardsBFS(Direction direction) throws GameActionException {
+        MapLocation currentLocation = rc.getLocation();
+        MapLocation[] goalLocations = {
+                new MapLocation(currentLocation.x + directionOrdinalToGoalPoints[direction.ordinal()][0][0],
+                        currentLocation.y + directionOrdinalToGoalPoints[direction.ordinal()][0][1]),
+                new MapLocation(currentLocation.x + directionOrdinalToGoalPoints[direction.ordinal()][1][0],
+                        currentLocation.y + directionOrdinalToGoalPoints[direction.ordinal()][1][1]),
+                new MapLocation(currentLocation.x + directionOrdinalToGoalPoints[direction.ordinal()][2][0],
+                        currentLocation.y + directionOrdinalToGoalPoints[direction.ordinal()][2][1])
+        };
+        int adjX = currentLocation.x - 4;
+        int adjY = currentLocation.y - 4;
+        boolean[][] notVisited = new boolean[9][9];
+        MapLocation[][] parentLocation = new MapLocation[9][9];
+        MapLocation[] locationsQueue = new MapLocation[80];
+        int front = 0;
+        int back = -1;
+        int currentSize = 0;
+
+        switch (back) {
+            case 79:
+                back = -1;
+                break;
+        }
+        locationsQueue[++back] = currentLocation;
+        currentSize++;
+        /*
+        insert
+        if rear == maxSize - 1
+            rear = -1
+        locationsQueue[++back] = insert
+        currentSize++
+
+        delete
+        currentSize--
+        int temp = locationsQueue[front++]
+        if front == maxSize
+            front = 0
+        return temp
+
+        getSize
+            return currentSize
+         */
+
+
+
     }
 
 }
