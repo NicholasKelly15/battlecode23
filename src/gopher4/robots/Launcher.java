@@ -15,9 +15,10 @@ public class Launcher extends Robot {
     private int symmetryType;
     private int val;
     private boolean enemy;
-    private boolean Temp;
+    private boolean Follower;
     int wellNum;
     int trigger;
+
     
     private int turnsStoodby;
     private int turnsStoodby2;
@@ -34,10 +35,10 @@ public class Launcher extends Robot {
         trigger=val/6;
         TURNSTOSTANDBY=25;
         GAURDRADIUS=20;
-        FOLLOWRADIUS=2;
+        FOLLOWRADIUS=16;
         TURNSTOSTANDBYSHORT=10;
         enemy=false;
-        Temp=true;
+        Follower=val%3!=0;
         wellNum=0;
 
         
@@ -96,7 +97,16 @@ public class Launcher extends Robot {
         if (SeenEnemies(AllThings,20) != null) {
             return enterAttack();
         }
-        pathing.moveTo(target);
+        if(Follower){
+            RobotInfo robo=getLauncherToFollow2();
+            if(robo!=null){
+                pathing.moveTo(robo.getLocation());
+            }else{
+                pathing.moveTo(target);
+            }
+        }else {
+            pathing.moveTo(target);
+        }
         if (SeenEnemies(AllThings,20) != null) {
             return enterAttack();
         }
@@ -323,19 +333,29 @@ public class Launcher extends Robot {
         }
     }
     public void MoveInDirSomewhat(Direction Dir, int r) throws GameActionException {
-        if (rc.canMove(Dir)&&  (rc.senseMapInfo(rc.getLocation().add(Dir)).getCurrentDirection()==Direction.CENTER) &&(2<target.distanceSquaredTo(rc.getLocation().add(Dir))&&target.distanceSquaredTo(rc.getLocation().add(Dir))<r)) {
+        if (rc.canMove(Dir)&&  (rc.senseMapInfo(rc.getLocation().add(Dir)).getCurrentDirection()==Direction.CENTER)
+                &&(2<target.distanceSquaredTo(rc.getLocation().add(Dir))&&target.distanceSquaredTo(rc.getLocation().add(Dir))<r)
+                &&!rc.getLocation().add(Dir).isWithinDistanceSquared(DoFlip(homeHQ),9)) {
             rc.move(Dir);
         } else {
-            if (rc.canMove(Dir.rotateLeft())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateLeft())).getCurrentDirection()==Direction.CENTER) &&2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft()))<r) {
+            if (rc.canMove(Dir.rotateLeft())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateLeft())).getCurrentDirection()==Direction.CENTER)
+                    &&2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft()))<r
+                    &&!rc.getLocation().add(Dir.rotateLeft()).isWithinDistanceSquared(DoFlip(homeHQ),9)) {
                 rc.move(Dir.rotateLeft());
             } else {
-                if (rc.canMove(Dir.rotateRight())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateRight())).getCurrentDirection()==Direction.CENTER) &&2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight()))<r) {
+                if (rc.canMove(Dir.rotateRight())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateRight())).getCurrentDirection()==Direction.CENTER)
+                        &&2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight()))<r
+                        &&!rc.getLocation().add(Dir.rotateRight()).isWithinDistanceSquared(DoFlip(homeHQ),9)) {
                     rc.move(Dir.rotateRight());
                 }else {
-                    if (rc.canMove(Dir.rotateLeft().rotateLeft())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateLeft().rotateLeft())).getCurrentDirection()==Direction.CENTER) && 2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft().rotateLeft()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft().rotateLeft()))<r) {
+                    if (rc.canMove(Dir.rotateLeft().rotateLeft())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateLeft().rotateLeft())).getCurrentDirection()==Direction.CENTER)
+                            && 2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft().rotateLeft()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateLeft().rotateLeft()))<r
+                            &&!rc.getLocation().add(Dir.rotateLeft().rotateLeft()).isWithinDistanceSquared(DoFlip(homeHQ),9)) {
                         rc.move(Dir.rotateLeft().rotateLeft());
                     } else {
-                        if (rc.canMove(Dir.rotateRight().rotateRight())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateRight().rotateRight())).getCurrentDirection()==Direction.CENTER) && 2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight().rotateRight()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight().rotateRight()))<r) {
+                        if (rc.canMove(Dir.rotateRight().rotateRight())&&  (rc.senseMapInfo(rc.getLocation().add(Dir.rotateRight().rotateRight())).getCurrentDirection()==Direction.CENTER)
+                                && 2<target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight().rotateRight()))&&target.distanceSquaredTo(rc.getLocation().add(Dir.rotateRight().rotateRight()))<r
+                                &&!rc.getLocation().add(Dir.rotateRight().rotateRight()).isWithinDistanceSquared(DoFlip(homeHQ),9)) {
                             rc.move(Dir.rotateRight().rotateRight());
                         }
                     }
@@ -356,7 +376,18 @@ public class Launcher extends Robot {
         return toFollow;
     }
 
-    //TODO this is some placeholder code I put in
+    private RobotInfo getLauncherToFollow2() throws GameActionException {
+        int lowestID = Integer.MAX_VALUE;
+        RobotInfo toFollow = null;
+        for (RobotInfo friendly : rc.senseNearbyRobots(FOLLOWRADIUS, team)) {
+            if (friendly.getType() == RobotType.LAUNCHER &&friendly.getID() < rc.getID() && friendly.getID() < lowestID) {
+                lowestID = friendly.getID();
+                toFollow = friendly;
+            }
+        }
+        return toFollow;
+    }
+
     public MapLocation GetNewTarget() throws GameActionException {
 
         MapLocation loc;
