@@ -11,6 +11,9 @@ public class Headquarters extends Robot {
     int Launchers;
     int symmetryType;
     boolean inCloud;
+    int nextRoundToMakeAnchor = 300;
+    boolean madeAnchorRequested = true;
+
     ArrayList<MapLocation> spawnradius;
     public Headquarters(RobotController rc) throws Exception {
         super(rc);
@@ -90,17 +93,37 @@ public class Headquarters extends Robot {
         super.run();
         symmetryType=rc.readSharedArray(63)/16384;
 
-        int spawnTries = 0;
-        while (rc.isActionReady() && spawnTries++ < 15) {
-            MapLocation freeLoc = getOpenSpawnLocation();
-            if (freeLoc != null && rc.canBuildRobot(RobotType.CARRIER, freeLoc)) {
-                rc.buildRobot(RobotType.CARRIER, freeLoc);
-            } else if (freeLoc != null && rc.canBuildRobot(RobotType.LAUNCHER, freeLoc)) {
-                Launchers++;
-                rc.writeSharedArray(63,Launchers+symmetryType*16384);
-                rc.setIndicatorString(Launchers+"");
-                rc.buildRobot(RobotType.LAUNCHER, freeLoc);
+        if (rc.getRoundNum() == nextRoundToMakeAnchor) {
+            nextRoundToMakeAnchor += 100;
+            madeAnchorRequested = false;
+        }
+        if (!madeAnchorRequested) {
+            rc.setIndicatorString("Attempting to make anchor.");
+            if (rc.canBuildAnchor(Anchor.STANDARD)) {
+                rc.buildAnchor(Anchor.STANDARD);
+                madeAnchorRequested = true;
             }
+        } else {
+
+            rc.setIndicatorString("Looking to spawn.");
+
+            int spawnTries = 0;
+            while ((rc.getResourceAmount(ResourceType.ADAMANTIUM) > RobotType.CARRIER.buildCostAdamantium
+                        || rc.getResourceAmount(ResourceType.MANA) > RobotType.LAUNCHER.buildCostMana)
+                    && rc.isActionReady() && spawnTries++ < 5) {
+
+                MapLocation freeLoc = getOpenSpawnLocation();
+                if (freeLoc != null && rc.canBuildRobot(RobotType.CARRIER, freeLoc)) {
+                    rc.buildRobot(RobotType.CARRIER, freeLoc);
+                } else if (freeLoc != null && rc.canBuildRobot(RobotType.LAUNCHER, freeLoc)) {
+                    Launchers++;
+                    rc.writeSharedArray(63,Launchers+symmetryType*16384);
+                    rc.setIndicatorString(Launchers+"");
+                    rc.buildRobot(RobotType.LAUNCHER, freeLoc);
+                }
+
+            }
+
         }
 
         endTurn();
