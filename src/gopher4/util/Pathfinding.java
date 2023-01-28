@@ -90,12 +90,13 @@ public class Pathfinding {
         int back = -1;
         int currentSize = 0;
 
+
         switch (back) {
-            case 79:
-                back = -1;
-                break;
+            case 0: back = 1;
+            case 1: back = 2;
+            case 79: back = 0;
         }
-        locationsQueue[++back] = currentLocation;
+        locationsQueue[back] = currentLocation;
         currentSize++;
         /*
         insert
