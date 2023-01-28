@@ -17,7 +17,7 @@ public class Headquarters extends Robot {
     int symmetryType;
     public Headquarters(RobotController rc) throws Exception {
         super(rc);
-        Launchers=0;
+        Launchers=3;
         symmetryType=0;
         comms.reportSelfHQLocation();
     }
@@ -50,7 +50,7 @@ public class Headquarters extends Robot {
         if (freeLoc != null && rc.canBuildRobot(RobotType.CARRIER, freeLoc)) {
             rc.buildRobot(RobotType.CARRIER, freeLoc);
         } else if (freeLoc != null && rc.canBuildRobot(RobotType.LAUNCHER, freeLoc)) {
-            rc.writeSharedArray(63,Launchers/3+symmetryType*16384);
+            rc.writeSharedArray(63,Launchers+symmetryType*16384);
             rc.buildRobot(RobotType.LAUNCHER, freeLoc);
         }
 

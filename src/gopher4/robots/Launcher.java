@@ -1,7 +1,10 @@
 package gopher4.robots;
 
 import battlecode.common.*;
+import battlecode.world.MapSymmetry;
 import gopher4.util.SharedArrayStack;
+
+import java.util.Map;
 
 public class Launcher extends Robot {
     MapLocation target;
@@ -15,16 +18,20 @@ public class Launcher extends Robot {
     private boolean[] CantAttack;
     private int symmetryType;
     private int val;
+    private boolean enemy;
+    private boolean Temp;
 
     public Launcher(RobotController rc) throws GameActionException {
         super(rc);
         int temp=rc.readSharedArray(63);
         symmetryType=temp/16384;
-        val=temp%16384;
+        val=(temp%16384);
         TURNSTOSTANDBY=50;
         GAURDRADIUS=20;
         FOLLOWRADIUS=16;
         TURNSTOSTANDBYSHORT=10;
+        enemy=false;
+        Temp=true;
         attackPreference = new int[]{
                 5, // HQ Preference
                 4, // Carrier
@@ -40,10 +47,8 @@ public class Launcher extends Robot {
 
     public void run() throws GameActionException, IllegalAccessException {
         super.run();
-        MapLocation thePoint= new MapLocation (rc.getMapWidth()/2, rc.getMapHeight()/2);
-        target=thePoint;
+        target=getNearestKnownWell(null);
         int x= travel();
-
         endTurn();
     }
 
@@ -52,6 +57,10 @@ public class Launcher extends Robot {
 
         while(true) {
             rc.setIndicatorString("Travel");
+            if(Temp&&(rc.readSharedArray(63)%16384)/6==1+val/6){
+                Temp=false;
+                target=GetNewTarget();
+            }
             if (SeenEnemies(AllThings,-1) != null) {
                 return attack();
             }
@@ -60,8 +69,16 @@ public class Launcher extends Robot {
                 return attack();
             }
             if (rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
-                return defend();
+                if(rc.senseNearbyWells(target, 1).length>0) {
+                    return defend();
+                }else{
+                    symmetryType++;
+                    target=GetNewTarget();
+                    return travel();
+                }
             }
+
+            updateSymmetryType();
             Clock.yield();
         }
     }
@@ -76,7 +93,7 @@ public class Launcher extends Robot {
             rc.setIndicatorString("Attack");
             AttackSeen = SeenEnemies(CanAttack, -1);
             NotAttackSeen = SeenEnemies(CantAttack, -1);
-            if (turns > TURNSTOSTANDBY) {
+            if (turns > TURNSTOSTANDBYSHORT) {
                 return travel();
             }
             if (AttackSeen == null) {
@@ -115,6 +132,7 @@ public class Launcher extends Robot {
                             }
                         }
                 }
+                updateSymmetryType();
                 Clock.yield();
             }
         }
@@ -158,6 +176,7 @@ public class Launcher extends Robot {
                     if (SeenEnemies(AllThings, -1) != null) {
                         return attack();
                     }
+                    updateSymmetryType();
                     Clock.yield();
                 }
             }
@@ -279,14 +298,60 @@ public class Launcher extends Robot {
     }
 
     //TODO this is some placeholder code I put in
-    public MapLocation GetNewTarget(){
-        SharedArrayStack WellLocations =comms.getWellLocationsStack();
-
-        if((val/3)%2==0){
-            return target;
-        }else{
-             return target;
+    public MapLocation GetNewTarget() throws GameActionException {
+        MapLocation loc;
+        int count=0;
+        MapLocation Center=new MapLocation (rc.getMapWidth()/2, rc.getMapHeight()/2);
+        if(knownWellsStackPointer==0){
+            return Center;
         }
+        int number=val%knownWellsStackPointer;
+        val++;
+        while(true) {
+            if ((val / 6) % 2 != 0) {
+                enemy = false;
+                return knownWellsStack[number];
+            } else {
+                enemy = true;
+                loc = DoFlip(knownWellsStack[number]);
+                if (alreadyKnown(loc)) {
+                    count++;
+                    if(count>10){
+                        return knownWellsStack[number];
+                    }
+                    val+=6;
+                } else {
+                    Direction dir=loc.directionTo(Center);
+                    return loc.add(dir).add(dir).add(dir).add(dir);
+                }
+            }
+        }
+    }
 
+    public MapLocation DoFlip(MapLocation loc){
+        int x=loc.x,y=loc.y;
+        if(symmetryType%2==0){
+            x=rc.getMapWidth()-x-1;
+        }
+        if(symmetryType/2==0){
+            y=rc.getMapHeight()-y-1;
+        }
+        return new MapLocation(x,y);
+    }
+
+    public boolean alreadyKnown(MapLocation loc){
+        for(int count=0; count<knownWellsStackPointer; count++){
+            if (knownWellsStack[count].equals(loc)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void updateSymmetryType() throws GameActionException {
+        int val=rc.readSharedArray(63);
+        if(rc.canWriteSharedArray(63,val)&& (val/16384)!=symmetryType){
+            rc.writeSharedArray(63, (val%16384)+symmetryType*16384);
+        }
     }
 }
