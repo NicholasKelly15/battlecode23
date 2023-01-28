@@ -89,6 +89,8 @@ public class Headquarters extends Robot {
 
         super.run();
         symmetryType=rc.readSharedArray(63)/16384;
+
+
         MapLocation freeLoc = getOpenSpawnLocation();
         if (freeLoc != null && rc.canBuildRobot(RobotType.CARRIER, freeLoc)) {
             rc.buildRobot(RobotType.CARRIER, freeLoc);

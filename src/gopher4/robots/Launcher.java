@@ -1,10 +1,6 @@
 package gopher4.robots;
 
 import battlecode.common.*;
-import battlecode.world.MapSymmetry;
-import gopher4.util.SharedArrayStack;
-
-import java.util.Map;
 
 public class Launcher extends Robot {
     MapLocation target;
@@ -22,6 +18,11 @@ public class Launcher extends Robot {
     private boolean Temp;
     int wellNum;
     int trigger;
+    
+    private int turnsStoodby;
+    private int turnsStoodby2;
+
+    int mode;
 
     MapLocation center;
 
@@ -33,11 +34,17 @@ public class Launcher extends Robot {
         trigger=val/6;
         TURNSTOSTANDBY=25;
         GAURDRADIUS=20;
-        FOLLOWRADIUS=-2;
+        FOLLOWRADIUS=2;
         TURNSTOSTANDBYSHORT=10;
         enemy=false;
         Temp=true;
         wellNum=0;
+
+        
+        turnsStoodby = 0;
+        turnsStoodby2 = 0;
+
+        mode = 0;
 
 
         attackPreference = new int[]{
@@ -52,156 +59,186 @@ public class Launcher extends Robot {
         AllThings=new boolean[]{false,true,true,true,true,true};
         CanAttack=new boolean[]{false,false,true,true,false,false};
         CantAttack=new boolean[]{false,true,false,false,true,true};
+
+        target = center;
     }
 
     public void run() throws GameActionException, IllegalAccessException {
         super.run();
-        target=center;
-        int x= travel();
+
+        switch (mode) {
+            case 0:
+                travel();
+                break;
+            case 1:
+                attack();
+                break;
+            case 2:
+                defend();
+                break;
+        }
+
+        EndingSetup();
         endTurn();
+    }
+    
+    public int enterTravel() throws GameActionException {
+        return travel();
     }
 
     //TODO implement attacking into clouds
     public int travel() throws GameActionException {
 
-        while(true) {
-            rc.setIndicatorString("Travel");
-            if(target.equals(center)&& (rc.readSharedArray(63)%16384)/6>trigger){
-                target=DoFlip(homeHQ);
-            }
-            if (SeenEnemies(AllThings,20) != null) {
-                return attack();
-            }
-            pathing.moveTo(target);
-            if (SeenEnemies(AllThings,20) != null) {
-                return attack();
-            }
-            if (rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
-                if(enemy) {
-                    if(target.equals(homeHQ) || rc.senseNearbyWells(target, 1).length>0) {
-                        return defend();
-                    }else{
-                        symmetryType++;
-                        target=GetNewTarget();
-                        return travel();
-                    }
-                }else{
-                    if(target.equals(center)||((rc.senseNearbyRobots(target,1,team.opponent()).length!=0) &&rc.senseNearbyRobots(target,1,team.opponent())[0].getType().equals(RobotType.HEADQUARTERS)) || rc.senseNearbyWells(knownWellsStack[wellNum], 1).length>0) {
-                        return defend();
-                    }else{
-                        symmetryType++;
-                        target=GetNewTarget();
-                        return travel();
-                    }
-                }
-
-            }
-
-            updateSymmetryType();
-            EndingSetup();
+        rc.setIndicatorString("Travel");
+        if(target.equals(center)&& (rc.readSharedArray(63)%16384)/6>trigger){
+            target=DoFlip(homeHQ);
         }
+        if (SeenEnemies(AllThings,20) != null) {
+            return attack();
+        }
+        pathing.moveTo(target);
+        if (SeenEnemies(AllThings,20) != null) {
+            return attack();
+        }
+        if (rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
+            if(enemy) {
+                if(target.equals(homeHQ) || rc.senseNearbyWells(target, 1).length>0) {
+                    return enterDefend();
+                }else{
+                    symmetryType++;
+                    target=GetNewTarget();
+                    return enterTravel();
+                }
+            }else{
+
+                if(target.equals(center)
+
+                        || ((rc.senseNearbyRobots(target,1,team.opponent()).length != 0)
+                            && rc.senseNearbyRobots(target,1,team.opponent())[0].getType().equals(RobotType.HEADQUARTERS))
+
+                        || (knownWellsStackPointer != 0
+                            && rc.senseNearbyWells(knownWellsStack[wellNum], 1).length > 0)) {
+
+                    return enterDefend();
+                }else{
+                    symmetryType++;
+                    target=GetNewTarget();
+                    return enterTravel();
+                }
+            }
+
+        }
+
+        updateSymmetryType();
+        
+        return 0;
+    }
+    
+    public int enterAttack() throws GameActionException {
+        turnsStoodby = 0;
+        return attack();
     }
 
     public int attack() throws GameActionException {
-        int turns = 0;
-        RobotInfo AttackSeen;
-        RobotInfo NotAttackSeen;
+        
+        rc.setIndicatorString("Attack");
+        RobotInfo AttackSeen = SeenEnemies(CanAttack, 20);
+        RobotInfo NotAttackSeen = SeenEnemies(CantAttack, 20);
+        if (turnsStoodby > TURNSTOSTANDBYSHORT) {
+            return enterTravel();
+        }
         Direction Dir;
-
-        while (true) {
-            rc.setIndicatorString("Attack");
-            AttackSeen = SeenEnemies(CanAttack, 20);
-            NotAttackSeen = SeenEnemies(CantAttack, 20);
-            if (turns > TURNSTOSTANDBYSHORT) {
-                return travel();
-            }
-            if (AttackSeen == null) {
-                if (NotAttackSeen != null) {
-                    turns = 0;
-                    if (rc.canAttack(NotAttackSeen.getLocation())) {
-                        rc.attack(NotAttackSeen.getLocation());
-                        if (NotAttackSeen.health > RobotType.LAUNCHER.damage && rc.isMovementReady()) {
-                            Dir = rc.getLocation().directionTo(NotAttackSeen.getLocation());
-                            MoveInDirSomewhat(Dir);
-                        }
-                    } else {
-                        moveToAndAttack(NotAttackSeen.getLocation());
+        if (AttackSeen == null) {
+            if (NotAttackSeen != null) {
+                turnsStoodby = 0;
+                if (rc.canAttack(NotAttackSeen.getLocation())) {
+                    rc.attack(NotAttackSeen.getLocation());
+                    if (NotAttackSeen.health > RobotType.LAUNCHER.damage && rc.isMovementReady()) {
+                        Dir = rc.getLocation().directionTo(NotAttackSeen.getLocation());
+                        MoveInDirSomewhat(Dir);
                     }
                 } else {
-                    turns++;
+                    moveToAndAttack(NotAttackSeen.getLocation());
                 }
             } else {
-                turns = 0;
-                    if (rc.canAttack(AttackSeen.getLocation())) {
-                        rc.attack(AttackSeen.getLocation());
-                    } else {
-                    //    if (rc.getHealth() <= RobotType.LAUNCHER.damage) {
-                            moveToAndAttack(AttackSeen.getLocation());
-                    //    }
-                    }
-
-                if (rc.isMovementReady()) {
-                    Dir = rc.getLocation().directionTo(AttackSeen.getLocation()).opposite();
-                    MoveInDirSomewhat(Dir);
-                        if (rc.canMove(Dir.rotateLeft().rotateLeft())) {
-                            rc.move(Dir.rotateLeft().rotateLeft());
-                        } else {
-                            if (rc.canMove(Dir.rotateRight().rotateRight())) {
-                                rc.move(Dir.rotateRight().rotateRight());
-                            }
-                        }
-                }
-                updateSymmetryType();
-                EndingSetup();
+                turnsStoodby++;
             }
+        } else {
+            turnsStoodby = 0;
+                if (rc.canAttack(AttackSeen.getLocation())) {
+                    rc.attack(AttackSeen.getLocation());
+                } else {
+                //    if (rc.getHealth() <= RobotType.LAUNCHER.damage) {
+                        moveToAndAttack(AttackSeen.getLocation());
+                //    }
+                }
+
+            if (rc.isMovementReady()) {
+                Dir = rc.getLocation().directionTo(AttackSeen.getLocation()).opposite();
+                MoveInDirSomewhat(Dir);
+                    if (rc.canMove(Dir.rotateLeft().rotateLeft())) {
+                        rc.move(Dir.rotateLeft().rotateLeft());
+                    } else {
+                        if (rc.canMove(Dir.rotateRight().rotateRight())) {
+                            rc.move(Dir.rotateRight().rotateRight());
+                        }
+                    }
+            }
+            updateSymmetryType();
         }
+        
+        return 1;
+        
+    }
+
+    public int enterDefend() throws GameActionException {
+        turnsStoodby = 0;
+        turnsStoodby2 = 0;
+        return defend();
     }
 
     public int defend() throws GameActionException {
-            int turns = 0;
-            int turns2= 0;
-            while (true) {
-                rc.setIndicatorString("Defend");
-                if(target.equals(center)&& (rc.readSharedArray(63)%16384)/6>trigger){
-                    target=DoFlip(homeHQ);
-                    travel();
+            rc.setIndicatorString("Defend");
+            if(target.equals(center)&& (rc.readSharedArray(63)%16384)/6>trigger){
+                target=DoFlip(homeHQ);
+                return enterTravel();
+            }
+            if (SeenEnemies(AllThings, 20) != null) {
+                return enterAttack();
+            } else {
+                turnsStoodby++;
+                if (turnsStoodby > TURNSTOSTANDBY) {
+                    target = GetNewTarget();
+                    return enterTravel();
+                }
+                if(!rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
+                    if (turnsStoodby2 > TURNSTOSTANDBYSHORT) {
+                        return enterTravel();
+                    }
+                    turnsStoodby2++;
+                }else{
+                    turnsStoodby2=0;
+                }
+                if(rc.isMovementReady()){
+                    RobotInfo toFollow = getLauncherToFollow();
+                    if (toFollow != null && turnsStoodby>10) {
+                        rc.setIndicatorString("Follower");
+                        pathing.moveTo(toFollow.getLocation().add(toFollow.getLocation().directionTo(target)));
+                    } else {
+                        if(!rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)){
+                            return enterTravel();
+                        }else {
+                            MoveInDirSomewhat(rc.getLocation().directionTo(DoFlip(homeHQ)), GAURDRADIUS);
+                        }
+                    }
                 }
                 if (SeenEnemies(AllThings, 20) != null) {
-                    return attack();
-                } else {
-                    turns++;
-                    if (turns > TURNSTOSTANDBY) {
-                        target = GetNewTarget();
-                        return travel();
-                    }
-                    if(!rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
-                        if (turns2 > TURNSTOSTANDBYSHORT) {
-                            return travel();
-                        }
-                        turns2++;
-                    }else{
-                        turns2=0;
-                    }
-                    if(rc.isMovementReady()){
-                        RobotInfo toFollow = getLauncherToFollow();
-                        if (toFollow != null && turns>10) {
-                            rc.setIndicatorString("Follower");
-                            pathing.moveTo(toFollow.getLocation().add(toFollow.getLocation().directionTo(target)));
-                        } else {
-                            if(!rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)){
-                                travel();
-                            }else {
-                                MoveInDirSomewhat(rc.getLocation().directionTo(DoFlip(homeHQ)), GAURDRADIUS);
-                            }
-                        }
-                    }
-                    if (SeenEnemies(AllThings, 20) != null) {
-                        return attack();
-                    }
-                    updateSymmetryType();
-                    EndingSetup();
+                    return enterAttack();
                 }
+                updateSymmetryType();
             }
+
+            return 2;
         }
 
     public RobotInfo SeenEnemies (boolean[] ScanedThings, int range) throws GameActionException {
@@ -372,22 +409,6 @@ public class Launcher extends Robot {
     }
 
     public void EndingSetup() throws GameActionException {
-        Clock.yield();
-        if (knownFriendlyHQs.isEmpty() && rc.getRoundNum() > 1) {
-            for (int intLocation : comms.getHqLocationsStack()) {
-                knownFriendlyHQs.push(comms.getMapLocationFromBits(intLocation));
-            }
-            int closestHQDistance = 10000;
-            MapLocation closestHQ = null;
-            for (MapLocation hqLocation : knownFriendlyHQs) {
-                if (hqLocation != null && hqLocation.distanceSquaredTo(rc.getLocation()) < closestHQDistance) {
-                    closestHQDistance = hqLocation.distanceSquaredTo(rc.getLocation());
-                    closestHQ = hqLocation;
-                }
-            }
-            homeHQ = closestHQ;
-        }
-        updateWellInformation();
         val=rc.readSharedArray(63)%16384;
     }
 }

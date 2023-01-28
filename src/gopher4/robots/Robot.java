@@ -2,12 +2,6 @@ package gopher4.robots;
 
 import battlecode.common.*;
 import gopher4.util.*;
-import scala.Array;
-
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Map;
 import java.util.Stack;
 
 public abstract class Robot {

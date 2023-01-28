@@ -3,13 +3,17 @@ package gopher4.robots;
 import battlecode.common.*;
 import gopher4.util.Pathfinding;
 
+import java.util.Arrays;
 import java.util.Stack;
 
 public class Carrier extends Robot {
 
     private Pathfinding pathing;
 
-    private int mode = -1;  // 0 = collectResources, 1 = runAway, 2 = returnToBase, 3 = explore
+    //    private int mode = -1;  // 0 = collectResources, 1 = runAway, 2 = returnToBase, 3 = explore, 4 = deployAnchor
+    private int mode;
+    private final int TURNS_TO_RUN = 5;
+
     private String[] modeStrings = new String[]{"Collection", "Running", "Returning", "Exploring"};
     private MapLocation currentTargetWell = null;
     private MapLocation permanentAssignedWell = null;
@@ -35,6 +39,7 @@ public class Carrier extends Robot {
                 1, // Booster
                 3  // Amplifier
         };
+        mode = 3;
         turnsSinceSeenEnemy = 0;
         currentExploreDirection = rc.getLocation().directionTo(new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2));
     }
@@ -42,52 +47,35 @@ public class Carrier extends Robot {
     public void run() throws GameActionException, IllegalAccessException {
         super.run();
 
-        if (mode == 1) {
-            turnsSinceSeenEnemy++;
+        switch (mode) {
+            case 0:
+                mode = collectResources();
+                break;
+            case 1:
+                mode = runAway();
+                break;
+            case 2:
+                mode = returnToBase();
+                break;
+            case 3:
+                mode = explore();
+                break;
         }
-
-        changeModeAndRun();
+        rc.setIndicatorString("Mode: " + modeStrings[mode]);
 
         endTurn();
     }
 
-    public void changeModeAndRun() throws GameActionException, IllegalAccessException {
-        mode = getBestMode();
-
-        switch (mode) {
-            case 0:     collectResources(); break;
-            case 1:     runAway(); break;
-            case 2:     returnToBase(); break;
-            case 3:     explore(); break;
-        }
-
-        rc.setIndicatorString("Mode: " + modeStrings[mode]);
-    }
-
-    private int getBestMode() throws GameActionException, IllegalAccessException {
+    private int testAndRunIfNeeded() throws GameActionException, IllegalAccessException {
         if (sensedEnemyLaunchersStackPointer > 0) {
             lastSeenEnemyPos = sensedEnemyLaunchers[0].getLocation();
-            return 1;
+            return enterRunAway();
         } else if (sensedEnemyDestabilizersStackPointer > 0) {
             lastSeenEnemyPos = sensedEnemyDestabilizers[0].getLocation();
-            return 1;
-        } else if (mode == 1 && turnsSinceSeenEnemy < 5) {
-            return 1;
-        } else if (mode == 1) {
-            turnsSinceSeenEnemy = 0;
+            return enterRunAway();
         }
 
-        if (getTotalResourceCount() == GameConstants.CARRIER_CAPACITY) {
-            return 2;
-        }
-
-        MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget);
-        if (nearestKnownWell != null) {
-            currentTargetWell = nearestKnownWell;
-            return 0;
-        } else {
-            return 3;
-        }
+        return -1;
     }
 
     private int getTotalResourceCount() {
@@ -97,9 +85,21 @@ public class Carrier extends Robot {
     }
 
     // travels to and collects from well.
-    private void collectResources() throws GameActionException, IllegalAccessException {
+    private int collectResources() throws GameActionException, IllegalAccessException {
         // consider thinking about adding a case where the carrier passes by an unknown well on
         // its way to the assigned well.
+
+        int returnNum = testAndRunIfNeeded();
+        if (returnNum != -1) {
+            return returnNum;
+        }
+
+        MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget);
+        if (nearestKnownWell != null) {
+            currentTargetWell = nearestKnownWell;
+        } else {
+            return explore();
+        }
 
         // 10 is the distance at which the carrier can see the well and every tile around it.
         if (canSeeWellAndSurroundings(currentTargetWell)) {
@@ -117,15 +117,13 @@ public class Carrier extends Robot {
                     rc.collectResource(currentTargetWell, -1);
                 }
 
-                int resourcesHeld = rc.getResourceAmount(ResourceType.ADAMANTIUM)
-                        + rc.getResourceAmount(ResourceType.MANA)
-                        + rc.getResourceAmount(ResourceType.ELIXIR);
+                int resourcesHeld = getTotalResourceCount();
                 if (rc.isMovementReady() && resourcesHeld == GameConstants.CARRIER_CAPACITY) {
-                    changeModeAndRun();
+                    return returnToBase();
                 }
             } else {
                 wellsSearchedLookingForTarget.push(currentTargetWell);
-                changeModeAndRun();
+                return collectResources();
             }
         } else {
             int moveTries = 0;
@@ -134,10 +132,22 @@ public class Carrier extends Robot {
             }
         }
 
+        return 0;
+
+    }
+
+    private int enterRunAway() throws GameActionException, IllegalAccessException {
+        turnsSinceSeenEnemy = 0;
+        return runAway();
     }
 
     // runs away from enemies in sight or previously seen.
-    private void runAway() throws GameActionException, IllegalAccessException {
+    private int runAway() throws GameActionException, IllegalAccessException {
+        turnsSinceSeenEnemy++;
+        if (turnsSinceSeenEnemy > TURNS_TO_RUN) {
+            return collectResources();
+        }
+
         if (getTotalResourceCount() > 0 && rc.isActionReady()) {
             throwResourcesToRun();
         }
@@ -145,10 +155,17 @@ public class Carrier extends Robot {
         while (rc.isMovementReady() && moveTries++ < 3) {
             pathing.moveTowards(lastSeenEnemyPos.directionTo(rc.getLocation()));
         }
+
+        return 1;
     }
 
     // go back to the hq that spawned this carrier
-    private void returnToBase() throws GameActionException, IllegalAccessException {
+    private int returnToBase() throws GameActionException, IllegalAccessException {
+        int returnNum = testAndRunIfNeeded();
+        if (returnNum != -1) {
+            return returnNum;
+        }
+
         int moveTries = 0;
         while (rc.isMovementReady() && moveTries++ < 3) {
             pathing.moveTo(homeHQ);
@@ -163,16 +180,74 @@ public class Carrier extends Robot {
             if (rc.canTransferResource(homeHQ, ResourceType.ADAMANTIUM, rc.getResourceAmount(ResourceType.ADAMANTIUM))) {
                 rc.transferResource(homeHQ, ResourceType.ADAMANTIUM, rc.getResourceAmount(ResourceType.ADAMANTIUM));
             }
-            changeModeAndRun();
+
+            if (rc.canTakeAnchor(homeHQ, Anchor.STANDARD)) {
+                rc.takeAnchor(homeHQ, Anchor.STANDARD);
+                return deployAnchor();
+            } else if (rc.canTakeAnchor(homeHQ, Anchor.ACCELERATING)) {
+                rc.takeAnchor(homeHQ, Anchor.ACCELERATING);
+                return deployAnchor();
+            } else {
+                return collectResources();
+            }
         }
+
+        return 2;
     }
 
     // explore the map for undiscovered wells
-    private void explore() throws GameActionException, IllegalAccessException {
+    private int explore() throws GameActionException, IllegalAccessException {
+        int returnNum = testAndRunIfNeeded();
+        if (returnNum != -1) {
+            return returnNum;
+        }
+
         int movesTried = 0;
         while (rc.isMovementReady() && movesTried++ < 4) {
             pathing.moveTowards(currentExploreDirection);
         }
+
+        return 3;
+    }
+
+    private int deployAnchor() throws GameActionException, IllegalAccessException {
+        if (rc.getAnchor() == null) {
+            return collectResources();
+        }
+
+        int[] nearbyIslands = rc.senseNearbyIslands();
+        MapLocation closestPoint = null;
+        if (nearbyIslands != null) {
+
+            MapLocation currentLocation = rc.getLocation();
+            int closest = 10000;
+            for (int i = nearbyIslands.length; i-- > 0 ; ) {
+                if (rc.senseTeamOccupyingIsland(nearbyIslands[i]) == Team.NEUTRAL) {
+                    MapLocation[] sensedLocations = rc.senseNearbyIslandLocations(i);
+                    for (int j = sensedLocations.length ; j-- > 0 ; ) {
+                        if (sensedLocations[j].distanceSquaredTo(currentLocation) < closest) {
+                            closest = sensedLocations[j].distanceSquaredTo(currentLocation);
+                            closestPoint = sensedLocations[j];
+                        }
+                    }
+                }
+            }
+        }
+
+        if (closestPoint != null) {
+            int moveTries = 0;
+            while (rc.isMovementReady() && moveTries++ < 3) {
+                pathing.moveTo(homeHQ);
+            }
+            if (rc.canPlaceAnchor()) {
+                rc.placeAnchor();
+                return collectResources();
+            }
+        } else {
+            explore();
+        }
+
+        return 4;
     }
 
     private boolean canSeeWellAndSurroundings(MapLocation wellLocation) {
