@@ -117,7 +117,7 @@ public abstract class Robot {
         sensedWells = rc.senseNearbyWells();
 
         allSensedRobots = rc.senseNearbyRobots();
-        allSensedEnemyRobots = rc.senseNearbyRobots(-1, team.opponent());
+        allSensedEnemyRobots = rc.senseNearbyRobots(20, team.opponent());
 
         sensedEnemyLaunchersStackPointer = 0;
         sensedEnemyCarriersStackPointer = 0;
@@ -156,7 +156,7 @@ public abstract class Robot {
 
     }
 
-    private void updateWellInformation() throws GameActionException {
+    protected void updateWellInformation() throws GameActionException {
         // dealing with reporting known wells and reading about wells from the shared array.
 
         // first locally record wells not known from the shared array
