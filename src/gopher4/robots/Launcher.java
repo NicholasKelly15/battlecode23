@@ -20,18 +20,26 @@ public class Launcher extends Robot {
     private int val;
     private boolean enemy;
     private boolean Temp;
+    int wellNum;
+    int trigger;
+
+    MapLocation center;
 
     public Launcher(RobotController rc) throws GameActionException {
         super(rc);
         int temp=rc.readSharedArray(63);
         symmetryType=temp/16384;
         val=(temp%16384);
-        TURNSTOSTANDBY=50;
+        trigger=val/6;
+        TURNSTOSTANDBY=25;
         GAURDRADIUS=20;
-        FOLLOWRADIUS=16;
+        FOLLOWRADIUS=-2;
         TURNSTOSTANDBYSHORT=10;
         enemy=false;
         Temp=true;
+        wellNum=0;
+
+
         attackPreference = new int[]{
                 5, // HQ Preference
                 4, // Carrier
@@ -40,6 +48,7 @@ public class Launcher extends Robot {
                 2, // Booster
                 3  // Amplifier
         };
+        center= new MapLocation(rc.getMapWidth()/2,rc.getMapHeight()/2);
         AllThings=new boolean[]{false,true,true,true,true,true};
         CanAttack=new boolean[]{false,false,true,true,false,false};
         CantAttack=new boolean[]{false,true,false,false,true,true};
@@ -47,7 +56,7 @@ public class Launcher extends Robot {
 
     public void run() throws GameActionException, IllegalAccessException {
         super.run();
-        target=getNearestKnownWell(null);
+        target=center;
         int x= travel();
         endTurn();
     }
@@ -57,29 +66,39 @@ public class Launcher extends Robot {
 
         while(true) {
             rc.setIndicatorString("Travel");
-            if(Temp&&(rc.readSharedArray(63)%16384)/6==1+val/6){
-                Temp=false;
-                target=GetNewTarget();
+            if(target.equals(center)&& (rc.readSharedArray(63)%16384)/6>trigger){
+                target=DoFlip(homeHQ);
             }
-            if (SeenEnemies(AllThings,-1) != null) {
+            if (SeenEnemies(AllThings,20) != null) {
                 return attack();
             }
             pathing.moveTo(target);
-            if (SeenEnemies(AllThings,-1) != null) {
+            if (SeenEnemies(AllThings,20) != null) {
                 return attack();
             }
             if (rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
-                if(rc.senseNearbyWells(target, 1).length>0) {
-                    return defend();
+                if(enemy) {
+                    if(target.equals(homeHQ) || rc.senseNearbyWells(target, 1).length>0) {
+                        return defend();
+                    }else{
+                        symmetryType++;
+                        target=GetNewTarget();
+                        return travel();
+                    }
                 }else{
-                    symmetryType++;
-                    target=GetNewTarget();
-                    return travel();
+                    if(target.equals(center)||((rc.senseNearbyRobots(target,1,team.opponent()).length!=0) &&rc.senseNearbyRobots(target,1,team.opponent())[0].getType().equals(RobotType.HEADQUARTERS)) || rc.senseNearbyWells(knownWellsStack[wellNum], 1).length>0) {
+                        return defend();
+                    }else{
+                        symmetryType++;
+                        target=GetNewTarget();
+                        return travel();
+                    }
                 }
+
             }
 
             updateSymmetryType();
-            Clock.yield();
+            EndingSetup();
         }
     }
 
@@ -91,8 +110,8 @@ public class Launcher extends Robot {
 
         while (true) {
             rc.setIndicatorString("Attack");
-            AttackSeen = SeenEnemies(CanAttack, -1);
-            NotAttackSeen = SeenEnemies(CantAttack, -1);
+            AttackSeen = SeenEnemies(CanAttack, 20);
+            NotAttackSeen = SeenEnemies(CantAttack, 20);
             if (turns > TURNSTOSTANDBYSHORT) {
                 return travel();
             }
@@ -133,18 +152,21 @@ public class Launcher extends Robot {
                         }
                 }
                 updateSymmetryType();
-                Clock.yield();
+                EndingSetup();
             }
         }
     }
 
     public int defend() throws GameActionException {
-        MapLocation Center= new  MapLocation(rc.getMapWidth()/2, rc.getMapHeight());
             int turns = 0;
             int turns2= 0;
             while (true) {
                 rc.setIndicatorString("Defend");
-                if (SeenEnemies(AllThings, -1) != null) {
+                if(target.equals(center)&& (rc.readSharedArray(63)%16384)/6>trigger){
+                    target=DoFlip(homeHQ);
+                    travel();
+                }
+                if (SeenEnemies(AllThings, 20) != null) {
                     return attack();
                 } else {
                     turns++;
@@ -169,15 +191,15 @@ public class Launcher extends Robot {
                             if(!rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)){
                                 travel();
                             }else {
-                                MoveInDirSomewhat(rc.getLocation().directionTo(Center), GAURDRADIUS);
+                                MoveInDirSomewhat(rc.getLocation().directionTo(DoFlip(homeHQ)), GAURDRADIUS);
                             }
                         }
                     }
-                    if (SeenEnemies(AllThings, -1) != null) {
+                    if (SeenEnemies(AllThings, 20) != null) {
                         return attack();
                     }
                     updateSymmetryType();
-                    Clock.yield();
+                    EndingSetup();
                 }
             }
         }
@@ -299,31 +321,25 @@ public class Launcher extends Robot {
 
     //TODO this is some placeholder code I put in
     public MapLocation GetNewTarget() throws GameActionException {
+
         MapLocation loc;
-        int count=0;
+
         MapLocation Center=new MapLocation (rc.getMapWidth()/2, rc.getMapHeight()/2);
         if(knownWellsStackPointer==0){
             return Center;
         }
-        int number=val%knownWellsStackPointer;
-        val++;
+        wellNum=val%knownWellsStackPointer;
+        val+=6;
         while(true) {
             if ((val / 6) % 2 != 0) {
                 enemy = false;
-                return knownWellsStack[number];
+                return knownWellsStack[wellNum];
             } else {
                 enemy = true;
-                loc = DoFlip(knownWellsStack[number]);
-                if (alreadyKnown(loc)) {
-                    count++;
-                    if(count>10){
-                        return knownWellsStack[number];
-                    }
-                    val+=6;
-                } else {
+                loc = DoFlip(knownWellsStack[wellNum]);
                     Direction dir=loc.directionTo(Center);
-                    return loc.add(dir).add(dir).add(dir).add(dir);
-                }
+                    return loc.add(dir).add(dir).add(dir);
+
             }
         }
     }
@@ -353,5 +369,25 @@ public class Launcher extends Robot {
         if(rc.canWriteSharedArray(63,val)&& (val/16384)!=symmetryType){
             rc.writeSharedArray(63, (val%16384)+symmetryType*16384);
         }
+    }
+
+    public void EndingSetup() throws GameActionException {
+        Clock.yield();
+        if (knownFriendlyHQs.isEmpty() && rc.getRoundNum() > 1) {
+            for (int intLocation : comms.getHqLocationsStack()) {
+                knownFriendlyHQs.push(comms.getMapLocationFromBits(intLocation));
+            }
+            int closestHQDistance = 10000;
+            MapLocation closestHQ = null;
+            for (MapLocation hqLocation : knownFriendlyHQs) {
+                if (hqLocation != null && hqLocation.distanceSquaredTo(rc.getLocation()) < closestHQDistance) {
+                    closestHQDistance = hqLocation.distanceSquaredTo(rc.getLocation());
+                    closestHQ = hqLocation;
+                }
+            }
+            homeHQ = closestHQ;
+        }
+        updateWellInformation();
+        val=rc.readSharedArray(63)%16384;
     }
 }
