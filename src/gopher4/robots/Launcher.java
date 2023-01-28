@@ -94,11 +94,11 @@ public class Launcher extends Robot {
             target=DoFlip(homeHQ);
         }
         if (SeenEnemies(AllThings,20) != null) {
-            return attack();
+            return enterAttack();
         }
         pathing.moveTo(target);
         if (SeenEnemies(AllThings,20) != null) {
-            return attack();
+            return enterAttack();
         }
         if (rc.getLocation().isWithinDistanceSquared(target,GAURDRADIUS)) {
             if(enemy) {
