@@ -87,6 +87,11 @@ public class Carrier extends Robot {
                 + rc.getResourceAmount(ResourceType.ELIXIR);
     }
 
+    private int enterCollectResources() throws GameActionException, IllegalAccessException {
+        wellsSearchedLookingForTarget = new Stack<>();
+        return collectResources();
+    }
+
     // travels to and collects from well.
     private int collectResources() throws GameActionException, IllegalAccessException {
         // consider thinking about adding a case where the carrier passes by an unknown well on
@@ -126,7 +131,7 @@ public class Carrier extends Robot {
                 }
             } else {
                 wellsSearchedLookingForTarget.push(currentTargetWell);
-                return collectResources();
+                return enterCollectResources();
             }
         } else {
             int moveTries = 0;
@@ -148,7 +153,7 @@ public class Carrier extends Robot {
     private int runAway() throws GameActionException, IllegalAccessException {
         turnsSinceSeenEnemy++;
         if (turnsSinceSeenEnemy > TURNS_TO_RUN) {
-            return collectResources();
+            return enterCollectResources();
         }
 
         if (getTotalResourceCount() > 0 && rc.isActionReady()) {
@@ -194,7 +199,7 @@ public class Carrier extends Robot {
                     return deployAnchor();
                 }
             } else {
-                return collectResources();
+                return enterCollectResources();
             }
 
         }
@@ -209,6 +214,11 @@ public class Carrier extends Robot {
             return returnNum;
         }
 
+        MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget);
+        if (nearestKnownWell != null) {
+            return enterCollectResources();
+        }
+
         int movesTried = 0;
         while (rc.isMovementReady() && movesTried++ < 4) {
             pathing.moveTowards(currentExploreDirection);
@@ -219,7 +229,7 @@ public class Carrier extends Robot {
 
     private int deployAnchor() throws GameActionException, IllegalAccessException {
         if (rc.getAnchor() == null) {
-            return collectResources();
+            return enterCollectResources();
         }
 
         int[] nearbyIslands = rc.senseNearbyIslands();
@@ -241,7 +251,6 @@ public class Carrier extends Robot {
             }
         }
 
-        System.out.println(closestPoint);
 
         if (closestPoint != null) {
             int moveTries = 0;
@@ -250,7 +259,7 @@ public class Carrier extends Robot {
             }
             if (rc.canPlaceAnchor()) {
                 rc.placeAnchor();
-                return collectResources();
+                return enterCollectResources();
             }
         } else {
             explore();
