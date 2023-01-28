@@ -14,7 +14,7 @@ public class Carrier extends Robot {
     private int mode;
     private final int TURNS_TO_RUN = 5;
 
-    private String[] modeStrings = new String[]{"Collection", "Running", "Returning", "Exploring"};
+    private String[] modeStrings = new String[]{"Collection", "Running", "Returning", "Exploring", "Setting Anchor"};
     private MapLocation currentTargetWell = null;
     private MapLocation permanentAssignedWell = null;
     private Stack<MapLocation> wellsSearchedLookingForTarget;
@@ -181,15 +181,19 @@ public class Carrier extends Robot {
                 rc.transferResource(homeHQ, ResourceType.ADAMANTIUM, rc.getResourceAmount(ResourceType.ADAMANTIUM));
             }
 
-            if (rc.canTakeAnchor(homeHQ, Anchor.STANDARD)) {
-                rc.takeAnchor(homeHQ, Anchor.STANDARD);
-                return deployAnchor();
-            } else if (rc.canTakeAnchor(homeHQ, Anchor.ACCELERATING)) {
-                rc.takeAnchor(homeHQ, Anchor.ACCELERATING);
-                return deployAnchor();
+            RobotInfo homeHQInfo = rc.senseRobotAtLocation(homeHQ);
+            if (homeHQInfo.getTotalAnchors() > 0) {
+                if (rc.canTakeAnchor(homeHQ, Anchor.STANDARD)) {
+                    rc.takeAnchor(homeHQ, Anchor.STANDARD);
+                    return deployAnchor();
+                } else if (rc.canTakeAnchor(homeHQ, Anchor.ACCELERATING)) {
+                    rc.takeAnchor(homeHQ, Anchor.ACCELERATING);
+                    return deployAnchor();
+                }
             } else {
                 return collectResources();
             }
+
         }
 
         return 2;
