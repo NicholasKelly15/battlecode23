@@ -60,6 +60,9 @@ public class Carrier extends Robot {
             case 3:
                 mode = explore();
                 break;
+            case 4:
+                mode = deployAnchor();
+                break;
         }
         rc.setIndicatorString("Mode: " + modeStrings[mode]);
 
@@ -227,7 +230,7 @@ public class Carrier extends Robot {
             int closest = 10000;
             for (int i = nearbyIslands.length; i-- > 0 ; ) {
                 if (rc.senseTeamOccupyingIsland(nearbyIslands[i]) == Team.NEUTRAL) {
-                    MapLocation[] sensedLocations = rc.senseNearbyIslandLocations(i);
+                    MapLocation[] sensedLocations = rc.senseNearbyIslandLocations(nearbyIslands[i]);
                     for (int j = sensedLocations.length ; j-- > 0 ; ) {
                         if (sensedLocations[j].distanceSquaredTo(currentLocation) < closest) {
                             closest = sensedLocations[j].distanceSquaredTo(currentLocation);
@@ -238,10 +241,12 @@ public class Carrier extends Robot {
             }
         }
 
+        System.out.println(closestPoint);
+
         if (closestPoint != null) {
             int moveTries = 0;
             while (rc.isMovementReady() && moveTries++ < 3) {
-                pathing.moveTo(homeHQ);
+                pathing.moveTo(closestPoint);
             }
             if (rc.canPlaceAnchor()) {
                 rc.placeAnchor();
