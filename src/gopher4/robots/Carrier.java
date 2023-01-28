@@ -131,7 +131,7 @@ public class Carrier extends Robot {
                 }
             } else {
                 wellsSearchedLookingForTarget.push(currentTargetWell);
-                return enterCollectResources();
+                return collectResources();
             }
         } else {
             int moveTries = 0;
