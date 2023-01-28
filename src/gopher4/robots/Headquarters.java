@@ -90,15 +90,17 @@ public class Headquarters extends Robot {
         super.run();
         symmetryType=rc.readSharedArray(63)/16384;
 
-
-        MapLocation freeLoc = getOpenSpawnLocation();
-        if (freeLoc != null && rc.canBuildRobot(RobotType.CARRIER, freeLoc)) {
-            rc.buildRobot(RobotType.CARRIER, freeLoc);
-        } else if (freeLoc != null && rc.canBuildRobot(RobotType.LAUNCHER, freeLoc)) {
-            Launchers++;
-            rc.writeSharedArray(63,Launchers+symmetryType*16384);
-            rc.setIndicatorString(Launchers+"");
-            rc.buildRobot(RobotType.LAUNCHER, freeLoc);
+        int spawnTries = 0;
+        while (rc.isActionReady() && spawnTries++ < 15) {
+            MapLocation freeLoc = getOpenSpawnLocation();
+            if (freeLoc != null && rc.canBuildRobot(RobotType.CARRIER, freeLoc)) {
+                rc.buildRobot(RobotType.CARRIER, freeLoc);
+            } else if (freeLoc != null && rc.canBuildRobot(RobotType.LAUNCHER, freeLoc)) {
+                Launchers++;
+                rc.writeSharedArray(63,Launchers+symmetryType*16384);
+                rc.setIndicatorString(Launchers+"");
+                rc.buildRobot(RobotType.LAUNCHER, freeLoc);
+            }
         }
 
         endTurn();
