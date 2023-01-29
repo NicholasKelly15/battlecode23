@@ -1,11 +1,11 @@
-package gopher5.robots;
+package gopher8.robots;
 
 import battlecode.common.*;
-import gopher3.util.SharedArrayUtils;
-import gopher5.util.Comms;
-import gopher5.util.Pathfinding;
-import gopher5.util.SharedArrayStack;
+import gopher8.util.Comms;
+import gopher8.util.Pathfinding;
+import gopher8.util.SharedArrayStack;
 
+import java.util.Random;
 import java.util.Stack;
 
 public abstract class Robot {
@@ -47,6 +47,8 @@ public abstract class Robot {
     protected int knownWellsStackPointer;
     protected ResourceType[] knownWellsTypeStack;
     protected int knownWellsTypeStackPointer;
+
+    protected Random rng;
 
 
     protected final boolean DEBUG_MODE = true;
@@ -97,7 +99,7 @@ public abstract class Robot {
         knownWellsTypeStack = new ResourceType[150];
         knownWellsTypeStackPointer = 0;
 
-
+        rng = new Random();
     }
 
     public void run() throws GameActionException, IllegalAccessException {
@@ -159,6 +161,12 @@ public abstract class Robot {
                         sensedEnemyAmplifiers[sensedEnemyAmplifiersStackPointer++] = robot;
                         break;
                 }
+            }
+        }
+
+        for (int i = 0 ; i < sensedEnemyHeadquartersStackPointer ; i++) {
+            if (rc.getLocation().distanceSquaredTo(sensedEnemyHeadquarters[i].getLocation()) <= 18) {
+                pathing.moveTowards(sensedEnemyHeadquarters[i].getLocation().directionTo(rc.getLocation()));
             }
         }
 
@@ -280,12 +288,12 @@ public abstract class Robot {
                         MapLocation assignedHQ = null;
                         int closestHQDistance = 10000;
                         for (MapLocation hq : knownFriendlyHQs) {
-                            if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                            if (hq.distanceSquaredTo(location) < closestHQDistance && hq.distanceSquaredTo(location) < 100) {
                                 assignedHQ = hq;
                                 closestHQDistance = hq.distanceSquaredTo(location);
                             }
                         }
-                        if (!assignedHQ.equals(homeHQ)) {
+                        if (assignedHQ != null && !assignedHQ.equals(homeHQ)) {
                             isExcluded = true;
                         }
                     }
@@ -309,12 +317,12 @@ public abstract class Robot {
                     MapLocation assignedHQ = null;
                     int closestHQDistance = 10000;
                     for (MapLocation hq : knownFriendlyHQs) {
-                        if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                        if (hq.distanceSquaredTo(location) < closestHQDistance && hq.distanceSquaredTo(location) < 100) {
                             assignedHQ = hq;
                             closestHQDistance = hq.distanceSquaredTo(location);
                         }
                     }
-                    if (!assignedHQ.equals(homeHQ)) {
+                    if (assignedHQ != null && !assignedHQ.equals(homeHQ)) {
                         isExcluded = true;
                     }
                 }
@@ -346,12 +354,12 @@ public abstract class Robot {
                         MapLocation assignedHQ = null;
                         int closestHQDistance = 10000;
                         for (MapLocation hq : knownFriendlyHQs) {
-                            if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                            if (hq.distanceSquaredTo(location) < closestHQDistance && hq.distanceSquaredTo(location) < 100) {
                                 assignedHQ = hq;
                                 closestHQDistance = hq.distanceSquaredTo(location);
                             }
                         }
-                        if (!assignedHQ.equals(homeHQ)) {
+                        if (assignedHQ != null && !assignedHQ.equals(homeHQ)) {
                             isExcluded = true;
                         }
                     }
@@ -371,12 +379,12 @@ public abstract class Robot {
                     MapLocation assignedHQ = null;
                     int closestHQDistance = 10000;
                     for (MapLocation hq : knownFriendlyHQs) {
-                        if (hq.distanceSquaredTo(location) < closestHQDistance) {
+                        if (hq.distanceSquaredTo(location) < closestHQDistance && hq.distanceSquaredTo(location) < 100) {
                             assignedHQ = hq;
                             closestHQDistance = hq.distanceSquaredTo(location);
                         }
                     }
-                    if (!assignedHQ.equals(homeHQ)) {
+                    if (assignedHQ != null && !assignedHQ.equals(homeHQ)) {
                         isExcluded = true;
                     }
                 }

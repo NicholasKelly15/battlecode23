@@ -1,6 +1,7 @@
-package gopher5.robots;
+package gopher7.robots;
 
 import battlecode.common.*;
+import gopher7.util.ArrayUtils;
 
 public class Launcher extends Robot {
     MapLocation target;
@@ -78,6 +79,8 @@ public class Launcher extends Robot {
                 defend();
                 break;
         }
+
+        shootNearbyCloud();
 
         EndingSetup();
         endTurn();
@@ -173,6 +176,51 @@ public class Launcher extends Robot {
         return bestEnemy;
     }
 
+    private void shootNearbyCloud() throws GameActionException {
+        MapLocation[] nearbyClouds = rc.senseNearbyCloudLocations(RobotType.LAUNCHER.actionRadiusSquared);
+        MapLocation target = ArrayUtils.chooseRandom(nearbyClouds);
+        if (target != null) {
+            int attackTries = 0;
+            while (rc.isActionReady() && rc.canAttack(target) && attackTries++ < 3) {
+                rc.attack(target);
+            }
+        }
+    }
+
+    private MapLocation getLocationOfFriendlyInCombat() throws GameActionException {
+        RobotInfo[] sensedEnemyRobots = rc.senseNearbyRobots(rc.getLocation(), RobotType.LAUNCHER.visionRadiusSquared, team.opponent());
+        sensedEnemyLaunchersStackPointer = 0;
+        sensedEnemyDestabilizersStackPointer = 0;
+        // put the enemies into buckets
+        if (allSensedEnemyRobots != null) {
+            for (RobotInfo robot : allSensedEnemyRobots) {
+                switch (robot.getType()) {
+                    case LAUNCHER:
+                        sensedEnemyLaunchers[sensedEnemyLaunchersStackPointer++] = robot;
+                        break;
+                    case DESTABILIZER:
+                        sensedEnemyDestabilizers[sensedEnemyDestabilizersStackPointer++] = robot;
+                        break;
+                }
+            }
+        }
+
+        RobotInfo[] sensedNearbyFriendlies = rc.senseNearbyRobots(rc.getLocation(), RobotType.LAUNCHER.visionRadiusSquared, team);
+        for (RobotInfo friendly : sensedNearbyFriendlies) {
+            for (int i = sensedEnemyLaunchersStackPointer ; i-- > 0 ; ) {
+                if (friendly.getLocation().isWithinDistanceSquared(sensedEnemyLaunchers[i].getLocation(), RobotType.LAUNCHER.actionRadiusSquared)) {
+                    return friendly.getLocation();
+                }
+            }
+            for (int i = sensedEnemyDestabilizersStackPointer ; i-- > 0 ; ) {
+                if (friendly.getLocation().isWithinDistanceSquared(sensedEnemyDestabilizers[i].getLocation(), RobotType.LAUNCHER.actionRadiusSquared)) {
+                    return friendly.getLocation();
+                }
+            }
+        }
+        return null;
+    }
+
     public int attack() throws GameActionException {
         
         rc.setIndicatorString("Attack");
@@ -184,9 +232,18 @@ public class Launcher extends Robot {
             pathing.moveTowards(highestPriority.getLocation().directionTo(rc.getLocation()));
             turnsStoodby = 0;
         } else {
-            turnsStoodby++;
-            if (turnsStoodby > TURNSTOSTANDBYSHORT) {
-                return travel();
+
+            MapLocation friendlyInCombat = getLocationOfFriendlyInCombat();
+            if (friendlyInCombat != null && rc.isMovementReady()) {
+                pathing.moveTo(friendlyInCombat);
+                if (!rc.isMovementReady()) {
+                    return attack();
+                }
+            } else {
+                turnsStoodby++;
+                if (turnsStoodby > TURNSTOSTANDBYSHORT) {
+                    return travel();
+                }
             }
         }
         

@@ -1,4 +1,4 @@
-package gopher5.util;
+package gopher7.util;
 
 import battlecode.common.*;
 

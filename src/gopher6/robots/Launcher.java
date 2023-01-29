@@ -1,6 +1,7 @@
-package gopher5.robots;
+package gopher6.robots;
 
 import battlecode.common.*;
+import gopher6.util.ArrayUtils;
 
 public class Launcher extends Robot {
     MapLocation target;
@@ -78,6 +79,8 @@ public class Launcher extends Robot {
                 defend();
                 break;
         }
+
+        shootNearbyCloud();
 
         EndingSetup();
         endTurn();
@@ -171,6 +174,17 @@ public class Launcher extends Robot {
             }
         }
         return bestEnemy;
+    }
+
+    private void shootNearbyCloud() throws GameActionException {
+        MapLocation[] nearbyClouds = rc.senseNearbyCloudLocations(RobotType.LAUNCHER.actionRadiusSquared);
+        MapLocation target = ArrayUtils.chooseRandom(nearbyClouds);
+        if (target != null) {
+            int attackTries = 0;
+            while (rc.isActionReady() && rc.canAttack(target) && attackTries++ < 3) {
+                rc.attack(target);
+            }
+        }
     }
 
     public int attack() throws GameActionException {
