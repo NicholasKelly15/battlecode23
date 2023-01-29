@@ -1,8 +1,8 @@
-package gopher4.robots;
-import java.lang.Math;
-import java.util.ArrayList;
+package gopher5.robots;
 
 import battlecode.common.*;
+
+import java.util.ArrayList;
 
 
 public class Headquarters extends Robot {
@@ -11,8 +11,8 @@ public class Headquarters extends Robot {
     int Launchers;
     int symmetryType;
     boolean inCloud;
-    private int nextRoundToMakeAnchor = 750;
-    private final int roundsPerAnchor = 150;
+    private int nextRoundToMakeAnchor = 1000;
+    private final int roundsPerAnchor = 200;
     boolean madeAnchorRequested = true;
 
     ArrayList<MapLocation> spawnradius;

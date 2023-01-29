@@ -1,9 +1,8 @@
-package gopher4.robots;
+package gopher5.robots;
 
 import battlecode.common.*;
-import gopher4.util.Pathfinding;
+import gopher5.util.Pathfinding;
 
-import java.util.Arrays;
 import java.util.Stack;
 
 public class Carrier extends Robot {
@@ -21,6 +20,7 @@ public class Carrier extends Robot {
     private int turnsSinceSeenEnemy;
     private MapLocation lastSeenEnemyPos = null;
     private Direction currentExploreDirection;
+    private ResourceType resourceGoal;
 
     private int[] attackPreference; // low preference attacked first
 
@@ -42,6 +42,13 @@ public class Carrier extends Robot {
         mode = 3;
         turnsSinceSeenEnemy = 0;
         currentExploreDirection = rc.getLocation().directionTo(new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2));
+
+        if (rc.getID() % 10 > 6) {
+            resourceGoal = ResourceType.ADAMANTIUM;
+        } else {
+            resourceGoal = ResourceType.MANA;
+        }
+
     }
 
     public void run() throws GameActionException, IllegalAccessException {
@@ -102,11 +109,13 @@ public class Carrier extends Robot {
             return returnNum;
         }
 
-        MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget);
-        if (nearestKnownWell != null) {
-            currentTargetWell = nearestKnownWell;
-        } else {
-            return explore();
+        if (currentTargetWell == null) {
+            MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget, resourceGoal);
+            if (nearestKnownWell != null) {
+                currentTargetWell = nearestKnownWell;
+            } else {
+                return explore();
+            }
         }
 
         // 10 is the distance at which the carrier can see the well and every tile around it.
@@ -127,11 +136,17 @@ public class Carrier extends Robot {
 
                 int resourcesHeld = getTotalResourceCount();
                 if (rc.isMovementReady() && resourcesHeld == GameConstants.CARRIER_CAPACITY) {
+                    currentTargetWell = null;
                     return returnToBase();
                 }
             } else {
                 wellsSearchedLookingForTarget.push(currentTargetWell);
-                return collectResources();
+                MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget, resourceGoal);
+                if (nearestKnownWell == null) {
+                    explore();
+                } else {
+                    currentTargetWell = nearestKnownWell;
+                }
             }
         } else {
             int moveTries = 0;
@@ -151,17 +166,33 @@ public class Carrier extends Robot {
 
     // runs away from enemies in sight or previously seen.
     private int runAway() throws GameActionException, IllegalAccessException {
-        turnsSinceSeenEnemy++;
-        if (turnsSinceSeenEnemy > TURNS_TO_RUN) {
-            return enterCollectResources();
+        if (sensedEnemyLaunchersStackPointer > 0) {
+            turnsSinceSeenEnemy = 0;
+        } else if (sensedEnemyDestabilizersStackPointer > 0) {
+            turnsSinceSeenEnemy = 0;
         }
 
-        if (getTotalResourceCount() > 0 && rc.isActionReady()) {
-            throwResourcesToRun();
+        turnsSinceSeenEnemy++;
+        if (turnsSinceSeenEnemy > TURNS_TO_RUN) {
+            if (getTotalResourceCount() > 5) {
+                return returnToBase();
+            } else {
+                return collectResources();
+            }
         }
+
+//        if (getTotalResourceCount() > 0 && rc.isActionReady()) {
+//            throwResourcesToRun();
+//        }
         int moveTries = 0;
         while (rc.isMovementReady() && moveTries++ < 3) {
-            pathing.moveTowards(lastSeenEnemyPos.directionTo(rc.getLocation()));
+            if (rc.getLocation().distanceSquaredTo(homeHQ) <= 25) {
+                if (sensedEnemyLaunchersStackPointer == 0 && sensedEnemyDestabilizersStackPointer == 0) {
+                    return returnToBase();
+                }
+            } else {
+                pathing.moveTowards(lastSeenEnemyPos.directionTo(rc.getLocation()));
+            }
         }
 
         return 1;
@@ -214,7 +245,7 @@ public class Carrier extends Robot {
             return returnNum;
         }
 
-        MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget);
+        MapLocation nearestKnownWell = getNearestKnownWell(wellsSearchedLookingForTarget, resourceGoal);
         if (nearestKnownWell != null) {
             return enterCollectResources();
         }
